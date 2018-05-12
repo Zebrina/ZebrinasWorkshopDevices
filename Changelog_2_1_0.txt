@@ -1,0 +1,14 @@
+- Added powered mega security doors. Unlike the door version these are navmeshed.
+- Added some recolors of the default switches.
+- Fixed workshop rearranged patch material swaps.
+- Added a small delay so the circuit breaker can lose power for a brief moment without being reset.
+- Added the same terminal functionality the default switches have to my button switches.
+- Added tension trigger traps.
+- Added a handmade trip wire. Generates 1 power when triggered.
+- Added a handmade pressure plate (bathroom scale). Generates 1 power while pressed.
+- Added breakable wooden planks.
+- Added an ID card reader.
+- Added broken doors.
+- Adjusted many preview transforms.
+- Reorganized workshop menu a bit.
+- Probably something else I've forgotten :P

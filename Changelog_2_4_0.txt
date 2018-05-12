@@ -1,0 +1,9 @@
+- Added almost all remaining Mechanist doors.
+- Remade all the concrete framed doors (Security Door, Mechanist Doors, etc.) with custom collision made by me.
+- Added the ramp that lowers before you face the Mechanist.
+- Overhauled the security fences and doors. The security doors (and the mechanist ramp) can now be controlled via terminal isntead of power.
+- Added a Robobrain operated Control Console (For the teleporter) that requires no settler but instead 50 power.
+- The teleporter parts can now be destroyed and the main part is explosive (it has pretty high health though!).
+- Added cables that function like the floor conduits included in the Contraptions Workshop DLC.
+- Any basic door can now be toggled to auto-close using the engineering wrench.
+- Possibly something else? Note to self: I should add things to this list as I add them.

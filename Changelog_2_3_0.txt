@@ -1,0 +1,14 @@
+- Made the Paint Mixer give two paints instead of one. 1 + 1 = 1? WTF?
+- Reworked the Power Lifts. You will need to store existing Power Lift in the workshop and place them again. Sorry for the inconvenience!
+- Power Lifts now only have one button on the lift itself. If a lift only has two floors the button will make the lift go between them. If it has more than two floors then a dialogue will appear where the destination floor can be selected.
+- Power Lift panels can be detached/attached via configuration.
+- The Power Lift stairs are now a separate object and there are three variants to choose from.
+- The Powered Crane Bridges can now have their power state reversed. So that they will lower when powered. Can be changed via Pip-Bo config.
+- Added a functioning teleporter system similar to the one used in a quest during the main story. By default requires that you complete said quest.
+- Made Pip-Boy configuration require a special engineering weapon equipped and out. Can be disabled.
+- Added some help pages accessible through the holotape provided.
+- The holotape can now be crafted if one is not already present in your inventory.
+- Added some workshop menu filters.
+- Made the traps ignored by navmeshing, which should make the npcs not avoid them.
+- Fixed collision not being immediately updated when placed for certain doors. Previously they would require reloading.
+- Probably something else...

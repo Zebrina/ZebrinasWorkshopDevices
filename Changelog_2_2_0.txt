@@ -1,0 +1,9 @@
+- Added ID Card Reader description.
+- Added a secondary ID Card Reader that can be used to link multiple ID Card Readers to a single door.
+- Renamed Night-time Switches to Timed Switches.
+- Added new Timed (Night-time) Generators.
+- Added 4 types of Mechanist's Lair doors. In concrete similar to how the security door is added.
+- Modular climbable ladders (sort of).
+- Added the new paint cans I've made as decorations.
+- Added some unconventional doors.
+- Probably more...

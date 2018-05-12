@@ -1,0 +1,3 @@
+- Added a working modular quarry elevator. Functions similar to the lifts in that you can put your floors wherever you want them.
+- Reoorganized the elevator/lifts section of the workshop menu.
+- The robobrain teleporter console can now be painted!

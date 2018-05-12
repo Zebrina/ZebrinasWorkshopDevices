@@ -1,0 +1,72 @@
+{
+    "modName": "ZebrinasWorkshopDevices",
+    "displayName": "Zebrina's Workshop Devices",
+    "minMcmVersion": 2,
+    "pluginRequirements": ["ZebrinasWorkshopDevices.esp"],
+    "content":
+    [
+        {
+            "text": "<font size='30'><p align='center'>Zebrina's Workshop Devices</p></font>",
+            "html": true,
+            "type": "text"
+        },
+        {
+            "text": "Options",
+            "type": "section"
+        },
+        {
+            "id": "bDisableAutomaticItemSorting",
+            "text": "Disable Automatic Item Sorting Patch",
+            "type": "switcher",
+            "help": "Tick if you use DEF_UI but don't want any item tags. Requires a game restart to take effect.",
+            "valueOptions":
+            {
+                "sourceType": "ModSettingBool"
+            }
+        },
+        {
+            "text": "Pip-Boy Configuration Requires Engineering Weapon",
+            "type": "switcher",
+            "help": "To avoid accidentally entering Pip-Boy configuration when you just want to use your devices a specific engineering weapon is required.",
+            "valueOptions":
+            {
+                "sourceType": "GlobalValue",
+                "sourceForm": "ZebrinasWorkshopDevices.esp|1a87ac"
+            }
+        },
+        {
+            "text": "Teleporter Requires Quest",
+            "type": "switcher",
+            "help": "Allows you to build a teleporter without completing a certain quest.",
+            "valueOptions":
+            {
+                "sourceType": "GlobalValue",
+                "sourceForm": "ZebrinasWorkshopDevices.esp|1caa56"
+            }
+        },
+        {
+            "text": "Workshop Filters",
+            "type": "section"
+        },
+        {
+            "text": "Hide Legacy Night-time (Timed) Switches",
+            "type": "switcher",
+            "help": "It's sooooooooo ugly compared to the new ones...",
+            "valueOptions":
+            {
+                "sourceType": "GlobalValue",
+                "sourceForm": "ZebrinasWorkshopDevices.esp|1864d0"
+            }
+        },
+        {
+            "text": "Hide Radiating Switches and Generators",
+            "type": "switcher",
+            "help": "Pfft, if I want a radiating switch I'll wire a conduit to it!",
+            "valueOptions":
+            {
+                "sourceType": "GlobalValue",
+                "sourceForm": "ZebrinasWorkshopDevices.esp|1864c1"
+            }
+        }
+    ]
+}
