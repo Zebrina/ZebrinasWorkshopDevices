@@ -1,0 +1,5 @@
+# Compiled papyrus scripts.
+*.pex
+
+# Mod Organizer 2
+meta.ini
