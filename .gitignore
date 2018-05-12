@@ -1,3 +1,6 @@
+# Bethesda archives.
+*.ba2
+
 # Compiled papyrus scripts.
 *.pex
 
