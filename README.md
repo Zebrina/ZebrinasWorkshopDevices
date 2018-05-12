@@ -1,5 +1,5 @@
 # Zebrina's Workshop Devices
-My Workshop Devices mod on nexusmods. :blush:
+My [Workshop Devices](https://www.nexusmods.com/fallout4/mods/24678?) mod on nexusmods. :blush:
 
 ## Instructions:
 This project is set up to be cloned inside the Mod Organizer 2 mods folder. Scripts are set up to be compiled using Atom and the papyrus package provided there.
