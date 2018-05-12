@@ -1,5 +1,5 @@
 <?xml version='1.0'?>
-<PapyrusProject xmlns="PapyrusProject.xsd" Flags="Institute_Papyrus_Flags.flg" Output="C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Scripts" Optimize="false" Release="false">
+<PapyrusProject xmlns="PapyrusProject.xsd" Flags="Institute_Papyrus_Flags.flg" Output="C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Scripts\">
     <Imports>
         <Import>C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Mod Configuration Menu\Scripts\Source\User</Import>
         <Import>C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Scripts\Source\User</Import>

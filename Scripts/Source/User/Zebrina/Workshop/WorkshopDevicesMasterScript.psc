@@ -52,7 +52,7 @@ bool function CheckQuestStage(Quest akQuest, int auiStageID)
 endfunction
 
 event OnQuestInit()
-    ZWDPCGlobal.SetValueInt(Zebrina:Platform:PC.IsPC() as int)
+    ZWDPCGlobal.SetValueInt(Zebrina:System:PC.IsPC() as int)
 
     findWorkshopObjectLock = new ThreadLock
 
