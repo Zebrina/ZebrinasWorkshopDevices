@@ -1,3 +1,6 @@
+# Back-ups
+*.bak
+
 # Bethesda archives.
 *.ba2
 
