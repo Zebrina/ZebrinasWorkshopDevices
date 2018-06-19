@@ -1,30 +1,30 @@
-scriptname Zebrina:Workshop:PoweredTwoStateActivator extends Zebrina:Default:TwoStateActivator const
+scriptname Zebrina:Workshop:PoweredTwoStateActivator extends Zebrina:Default:TwoStateActivator
 
-group AutoFill
-    Keyword property WorkshopObjectHandlePowerState auto const mandatory
-    ActorValue property WorkshopObjectReversePowerState_AV auto const mandatory
+import Zebrina:WorkshopUtility
+
+group Configurable
+    bool property bOpenWhenPowered = true auto
+    { If false, will close when powered. }
 endgroup
 
-; Zebrina:Default:TwoStateActivator override.
-event OnActivate(ObjectReference akActionRef)
-    ; Do nothing.
-endevent
+bool bPowerStateChangeInProgress = false
 
-function HandlePowerStateChange()
-    if (!self.HasKeyword(WorkshopObjectHandlePowerState))
-        self.AddKeyword(WorkshopObjectHandlePowerState)
-        bool reversePowerState = self.GetValue(WorkshopObjectReversePowerState_AV) != 0.0
-        while ((self.IsPowered() != self.IsOpen()) != reversePowerState)
-            self.SetOpen(self.IsPowered() != reversePowerState)
-            ;Utility.Wait(0.1) ; Wait to see if power state still matches open state.
-        endwhile
-        self.ResetKeyword(WorkshopObjectHandlePowerState)
+function HandlePowerStateChange(bool abWasPowered)
+    if (!bPowerStateChangeInProgress)
+        bPowerStateChangeInProgress = true
+        Utility.Wait(0.01) ; Wait to avoid fake OnPowerOn events.
+        if (abWasPowered == self.IsPowered())
+            while ((self.IsPowered() == (self.GetState() == "IsOpen")) != bOpenWhenPowered)
+                self.SetOpen(self.IsPowered() == bOpenWhenPowered)
+            endwhile
+        endif
+        bPowerStateChangeInProgress = false
     endif
 endfunction
 
 event OnPowerOn(ObjectReference akPowerGenerator)
-    HandlePowerStateChange()
+    HandlePowerStateChange(true)
 endevent
 event OnPowerOff()
-    HandlePowerStateChange()
+    HandlePowerStateChange(false)
 endevent

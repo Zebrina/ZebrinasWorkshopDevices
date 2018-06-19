@@ -5,20 +5,22 @@ import Zebrina:WorkshopUtility
 group AutoFill
 	Keyword property WorkshopLinkAttachedDoor auto const mandatory
 	Quest property WorkshopFindClosestPrimaryIDCardReader auto const mandatory
-
     Zebrina:Workshop:WorkshopDevicesMasterScript property ZebrinasWorkshopDevices auto const mandatory
 endgroup
 group Optional
 	float property fAttachToDoorRadius = 256.0 auto const
 endgroup
 
-ObjectReference function AttachToClosestPrimaryIDCardReader()
+ObjectReference function AttachToClosestPrimaryIDCardReader(ObjectReference akReference = none)
 	self.UnregisterForAllCustomEvents()
-	ObjectReference parentRef = ZebrinasWorkshopDevices.FindWorkshopObject(self, WorkshopFindClosestPrimaryIDCardReader, fAttachToDoorRadius)
-	self.SetLinkedRef(parentRef, WorkshopLinkAttachedDoor)
-	if (parentRef)
-		self.RegisterForCustomEvent(parentRef as Zebrina:Workshop:IDCardReaderScript, "GreenStateBegin")
-		self.RegisterForCustomEvent(parentRef as Zebrina:Workshop:IDCardReaderScript, "GreenStateEnd")
+	; Bypass the search quest if we already know which parent to attach ourselves to.
+	if (!akReference)
+		akReference = ZebrinasWorkshopDevices.FindWorkshopObject(self, WorkshopFindClosestPrimaryIDCardReader, fAttachToDoorRadius)
+	endif
+	self.SetLinkedRef(akReference, WorkshopLinkAttachedDoor)
+	if (akReference)
+		self.RegisterForCustomEvent(akReference as Zebrina:Workshop:IDCardReaderScript, "GreenStateBegin")
+		self.RegisterForCustomEvent(akReference as Zebrina:Workshop:IDCardReaderScript, "GreenStateEnd")
 	endif
 endfunction
 
@@ -49,18 +51,27 @@ endevent
 event OnWorkshopObjectMoved(ObjectReference akWorkshopRef)
 	AttachToClosestPrimaryIDCardReader()
 endevent
+event OnWorkshopObjectDestroyed(ObjectReference akActionRef)
+	self.UnregisterForAllEvents()
+endevent
 
 function HandleRemoteWorkshopEvent(ObjectReference akSender, ObjectReference akReference)
-	if (akSender is WorkshopScript && akReference != self && akReference.GetBaseObject() is IDCardReaderScript)
-		AttachToClosestPrimaryIDCardReader()
+	if (akReference is IDCardReaderScript && (akReference.GetDistance(self) < self.GetLinkedRef(WorkshopLinkAttachedDoor).GetDistance(self)))
+		AttachToClosestPrimaryIDCardReader(akReference)
 	endif
 endfunction
 event ObjectReference.OnWorkshopObjectPlaced(ObjectReference akSender, ObjectReference akReference)
 	HandleRemoteWorkshopEvent(akSender, akReference)
 endevent
 event ObjectReference.OnWorkshopObjectMoved(ObjectReference akSender, ObjectReference akReference)
-	HandleRemoteWorkshopEvent(akSender, akReference)
+	if (akReference == self)
+		AttachToClosestPrimaryIDCardReader()
+	else
+		HandleRemoteWorkshopEvent(akSender, akReference)
+	endif
 endevent
 event ObjectReference.OnWorkshopObjectDestroyed(ObjectReference akSender, ObjectReference akReference)
-	HandleRemoteWorkshopEvent(akSender, akReference)
+	if (akReference == self.GetLinkedRef(WorkshopLinkAttachedDoor))
+		AttachToClosestPrimaryIDCardReader()
+	endif
 endevent

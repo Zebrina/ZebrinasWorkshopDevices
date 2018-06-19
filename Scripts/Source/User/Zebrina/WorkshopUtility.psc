@@ -45,13 +45,27 @@ float function atan2(float y, float x) global
     return 0.0
 endfunction
 
-function DisableAndDeleteLinkChain(ObjectReference akParentRef, Keyword akLinkKeyword = none) global
-    if (akParentRef)
-        DisableAndDeleteLinkChain(akParentRef.GetLinkedRef(akLinkKeyword), akLinkKeyword)
-        akParentRef.SetLinkedRef(none, akLinkKeyword)
-        akParentRef.DisableNoWait()
-        akParentRef.Delete()
+; Mostly for debugging.
+string function IntToHexStr(int aiInteger) global
+    string prefix = ""
+    if (aiInteger >= 16)
+        prefix = IntToHexStr(aiInteger / 16)
     endif
+    aiInteger = aiInteger % 16
+    if (aiInteger == 15)
+        return prefix + "f"
+    elseif (aiInteger == 14)
+        return prefix + "e"
+    elseif (aiInteger == 13)
+        return prefix + "d"
+    elseif (aiInteger == 12)
+        return prefix + "c"
+    elseif (aiInteger == 11)
+        return prefix + "b"
+    elseif (aiInteger == 10)
+        return prefix + "a"
+    endif
+    return prefix + (aiInteger as string)
 endfunction
 
 bool function IsPlayerActionRef(ObjectReference akActionRef) global
@@ -64,7 +78,7 @@ endfunction
 WorkshopScript function GetCurrentWorkshop() global
     WorkshopScript currentWorkshop = (GetWorkshopParent().GetAlias(76) as ReferenceAlias).GetReference() as WorkshopScript
     if (currentWorkshop && Game.GetPlayer().IsInLocation(currentWorkshop.myLocation))
-        return currentWorkshop as WorkshopScript
+        return currentWorkshop
     endif
     return none
 endfunction
@@ -99,8 +113,8 @@ function PlayerRemoveComponents(Component akComponent, int aiNumToRemove = 1) gl
     endif
 endfunction
 
-bool function IsItemSortingEnabled() global
-    return F4SE.GetPluginVersion("def_ui") != -1 && !MCM.GetModSettingBool("ZebrinasWorkshopDevices", "bDisableAutomaticItemSorting")
+function RestoreWorkshopMenu() global
+    (Game.GetForm(0x00106da2) as FormList).Revert()
 endfunction
 
 ; DEBUG
@@ -128,4 +142,23 @@ endfunction
 
 function DEBUGRemoveBlockPlayerActivationKeyword(ObjectReference akReference) global debugonly
     akReference.RemoveKeyword(Game.GetForm(0x001cd02b) as Keyword)
+endfunction
+
+; cgf "Zebrina:WorkshopUtility.DEBUGEnableAllOfType"
+function DEBUGEnableAllOfType(Form akBaseObject) global debugonly
+    ObjectReference[] refs = Game.GetPlayer().FindAllReferencesOfType(akBaseObject, 999999.0)
+    if (refs.Length > 0)
+        int enabledCount = 0
+        int i = 0
+        while (i < refs.Length)
+            if (!refs[i].IsDeleted())
+                refs[i].EnableNoWait()
+                enabledCount += 1
+            endif
+            i += 1
+        endwhile
+        if (enabledCount > 0)
+            Debug.MessageBox("Enabled " + refs.Length + " references that were not deleted.")
+        endif
+    endif
 endfunction

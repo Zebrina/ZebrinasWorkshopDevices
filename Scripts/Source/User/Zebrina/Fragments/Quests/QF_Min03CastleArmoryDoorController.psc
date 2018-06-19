@@ -4,9 +4,18 @@ Scriptname Zebrina:Fragments:Quests:QF_Min03CastleArmoryDoorController Extends Q
 ;BEGIN FRAGMENT Fragment_Stage_0010_Item_00
 Function Fragment_Stage_0010_Item_00()
 ;BEGIN CODE
-ObjectReference ref = ArmoryLockOutside.GetReference()
-ref.SetAngle(ref.GetAngleX(), ref.GetAngleY(), ref.GetAngleZ() + 180.0)
-ref.SetPosition(ref.GetPositionY() + 48.0 * cos(ref.GetAngleZ()), ref.GetPositionY() + 48.0 * sin(ref.GetAngleZ()), ref.GetPositionZ())
+; Force to ref here to prevent permanent persistance.
+ObjectReference primaryButtonRef = Game.GetForm(0x000b47fd) as ObjectReference
+ArmoryLock.ForceRefTo(primaryButtonRef)
+
+; Create and move second switch outside.
+primaryButtonRef.WaitFor3DLoad()
+ObjectReference secondaryButtonRef = primaryButtonRef.PlaceAtMe(primaryButtonRef.GetBaseObject(), abInitiallyDisabled = true)
+float r = primaryButtonRef.GetAngleZ() - 180.0
+secondaryButtonRef.SetAngle(0.0, 0.0, r)
+secondaryButtonRef.MoveTo(primaryButtonRef, fOffsetXY * sin(r), fOffsetXY * cos(r), fOffsetZ, false)
+ArmoryLockOutside.ForceRefTo(secondaryButtonRef)
+secondaryButtonRef.EnableNoWait(true)
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -15,4 +24,8 @@ EndFunction
 
 import Math
 
+float fOffsetXY = -44.0 const
+float fOffsetZ = 32.0 const
+
+ReferenceAlias property ArmoryLock auto const mandatory
 ReferenceAlias property ArmoryLockOutside auto const mandatory

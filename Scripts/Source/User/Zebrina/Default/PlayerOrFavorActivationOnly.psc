@@ -5,7 +5,7 @@ event OnLoad()
 endevent
 
 event OnActivate(ObjectReference akActionRef)
-    if (Zebrina:WorkshopUtility.IsPlayerActionRef(akActionRef))
+    if (akActionRef == Game.GetPlayer() || (akActionRef is Actor && (akActionRef as Actor).IsDoingFavor()))
         self.Activate(akActionRef, true)
     endif
 endevent

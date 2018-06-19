@@ -24,7 +24,7 @@ ObjectReference property MachineWheel hidden
 	endfunction
 	function set(ObjectReference akMachineWheelRef)
 		if (kMachineWheel)
-			kMachineWheel.DisableNoWait()
+			;kMachineWheel.DisableNoWait()
 			kMachineWheel.Delete()
 		endif
 		kMachineWheel = akMachineWheelRef
@@ -37,7 +37,6 @@ ObjectReference property ElevatorCounterweight hidden
 	endfunction
 	function set(ObjectReference akElevatorCounterweightRef)
 		if (kElevatorCounterweight)
-			kElevatorCounterweight.DisableNoWait()
 			kElevatorCounterweight.Delete()
 		endif
 		kElevatorCounterweight = akElevatorCounterweightRef
@@ -50,11 +49,7 @@ ObjectReference property ElevatorPlatformSoundMarker hidden
 	endfunction
 	function set(ObjectReference akElevatorPlatformSoundMarkerRef)
 		if (kElevatorPlatformSoundMarker)
-            ObjectReference soundDummy = kElevatorPlatformSoundMarker.GetLinkedRef()
-            kElevatorPlatformSoundMarker.SetLinkedRef(none)
-            soundDummy.DisableNoWait()
-			kElevatorPlatformSoundMarker.DisableNoWait()
-            soundDummy.Delete()
+            kElevatorPlatformSoundMarker.GetLinkedRef().Delete()
 			kElevatorPlatformSoundMarker.Delete()
 		endif
 		kElevatorPlatformSoundMarker = akElevatorPlatformSoundMarkerRef

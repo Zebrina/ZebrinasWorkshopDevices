@@ -47,3 +47,7 @@ event Actor.OnPlayerLoadGame(Actor akSender)
         self.EnableNoWait()
     endif
 endevent
+
+event OnLoad()
+    self.BlockActivation()
+endevent

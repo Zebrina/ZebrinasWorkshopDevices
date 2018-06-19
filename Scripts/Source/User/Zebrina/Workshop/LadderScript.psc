@@ -8,7 +8,7 @@ group AutoFill
     { Keyword to link the ladder that takes me up. }
     Keyword property WorkshopLinkLadderDown auto const mandatory
     { Keyword to link the ladder that takes me down. }
-    Message property WorkshopLadderDownActivateOverride auto const mandatory
+    Message property WorkshopLadderTopActivateOverride auto const mandatory
     { Activation prompt for the bottom ladder. }
 endgroup
 
@@ -39,11 +39,11 @@ function UpdateStackedLadder(Keyword akLinkKeyword)
         (ladderRef as LadderScript).UpdateStackedLadder(akLinkKeyword)
     elseif (akLinkKeyword == WorkshopLinkLadderUp)
         ; No ladder up, which means I'm the top ladder.
-        self.SetActivateTextOverride(none)
+        self.SetActivateTextOverride(WorkshopLadderTopActivateOverride)
         self.BlockActivation(false, false)
     else
         ; No ladder down, which means I'm the bottom ladder.
-        self.SetActivateTextOverride(WorkshopLadderDownActivateOverride)
+        self.SetActivateTextOverride(none)
         self.BlockActivation(false, false)
     endif
 endfunction
@@ -84,4 +84,18 @@ event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
 endevent
 event OnWorkshopObjectMoved(ObjectReference akWorkshopRef)
     StackLadder()
+endevent
+event OnWorkshopObjectDestroyed(ObjectReference akActionRef)
+    LadderScript ladderRef = self.GetLinkedRef(WorkshopLinkLadderUp) as LadderScript
+    if (ladderRef)
+        self.SetLinkedRef(none, WorkshopLinkLadderUp)
+        ladderRef.SetLinkedRef(none, WorkshopLinkLadderDown)
+        ladderRef.UpdateStackedLadder(WorkshopLinkLadderDown)
+    endif
+    ladderRef = self.GetLinkedRef(WorkshopLinkLadderDown) as LadderScript
+    if (ladderRef)
+        self.SetLinkedRef(none, WorkshopLinkLadderDown)
+        ladderRef.SetLinkedRef(none, WorkshopLinkLadderUp)
+        ladderRef.UpdateStackedLadder(WorkshopLinkLadderUp)
+    endif
 endevent

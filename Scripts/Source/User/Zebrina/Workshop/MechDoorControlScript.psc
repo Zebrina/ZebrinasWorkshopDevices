@@ -8,6 +8,88 @@ group AutoFill
 	{ Player-voice scene to play when the player interacts with a Controller in the RedOff state. "The power is out." }
     Scene property DLC01_PlayerMechDoorComment_RedOn auto const mandatory
 	{ Player-voice scene to play when the player interacts with a Controller in the RedOn state. "My robot should use this." }
+	Sound property DLC01DRSMechanistDoorControlBeepDeny auto const mandatory
+	Sound property DLC01DRSMechanistDoorControlBeepConfirm auto const mandatory
+endgroup
+group QuestAliases
+    ReferenceAlias property Followers_Companion auto const mandatory
+    ReferenceAlias property DLC01MasterQuest_MechDoorControl_Primary auto const mandatory
+    ReferenceAlias property DLC01MasterQuest_MechDoorControl_Target auto const mandatory
+    Scene property DLC01MasterQuest_MechanistDoorControlScenePlayerInitiated auto const mandatory
+	{ On DLC01MasterQuest, a scene in which the player tells their robot to scan and open the door control. }
+	Scene property DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated auto const mandatory
+	{ On DLC01MasterQuest, a scene in which the robot scans and opens the door control. }
+endgroup
+
+event OnInit()
+    self.BlockActivation()
+endevent
+
+function StartRobotScanningScene(bool abIsPlayerInitiated)
+    ; Push the controls into the scene aliases.
+    DLC01MasterQuest_MechDoorControl_Primary.ForceRefTo(self)
+    DLC01MasterQuest_MechDoorControl_Target.ForceRefTo(self)
+
+    ; Register for scene end event and start the appropriate scene.
+    self.RegisterForRemoteEvent(DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated, "OnEnd")
+    if (abIsPlayerInitiated)
+        DLC01MasterQuest_MechanistDoorControlScenePlayerInitiated.Start()
+    else
+        DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated.Start()
+    endif
+endfunction
+
+auto state WaitForActivate
+    event OnActivate(ObjectReference akActionRef)
+        self.GoToState("Busy")
+        if (IsPlayerActionRef(akActionRef))
+            Actor player = Game.GetPlayer()
+            Actor companionActor = Followers_Companion.GetActorRef()
+            bool canOpen = companionActor && companionActor.HasKeyword(DLC01CanOpenMechanistDoorsKeyword)
+            if (player.IsInScene())
+                DLC01DRSMechanistDoorControlBeepDeny.Play(self)
+            elseif (canOpen)
+                ; Our robot Followers_Companion activated the controller.
+                StartRobotScanningScene(akActionRef == player)
+                return ; To prevent going to 'WaitForActivate'
+            elseif (!self.IsPowered())
+                ; Play a player-voice scene stating the power is out.
+                DLC01_PlayerMechDoorComment_RedOff.Start()
+            else
+                ; Otherwise, if closed, play a negative acknowledgement.
+                if (self.GetOpenState() == 3)
+                    DLC01DRSMechanistDoorControlBeepDeny.Play(self)
+                else
+                    ; If open, play positive instead of negative achknowledgement.
+                    DLC01DRSMechanistDoorControlBeepConfirm.Play(self)
+                endif
+                ; And play a player-voice scene commenting on the strange device.
+                Utility.Wait(0.75)
+                DLC01_PlayerMechDoorComment_RedOn.Start()
+            endif
+        endif
+        self.GoToState("WaitForActivate")
+    endevent
+endstate
+state Busy
+endstate
+
+event Scene.OnEnd(Scene akSender)
+    self.UnregisterForRemoteEvent(akSender, "OnEnd")
+    self.Activate(Game.GetPlayer(), true)
+    self.GoToState("WaitForActivate")
+endevent
+
+; OLD SCRIPT
+;/
+import Zebrina:WorkshopUtility
+
+group AutoFill
+    Keyword property DLC01CanOpenMechanistDoorsKeyword auto const mandatory
+    Scene property DLC01_PlayerMechDoorComment_RedOff auto const mandatory
+	{ Player-voice scene to play when the player interacts with a Controller in the RedOff state. "The power is out." }
+    Scene property DLC01_PlayerMechDoorComment_RedOn auto const mandatory
+	{ Player-voice scene to play when the player interacts with a Controller in the RedOn state. "My robot should use this." }
 	Sound property DLC01DRSMechanistDoorControlOpen auto const mandatory
 	Sound property DLC01DRSMechanistDoorControlClose auto const mandatory
 	Sound property DLC01DRSMechanistDoorControlBeepDeny auto const mandatory
@@ -29,13 +111,19 @@ bool property bOpen = false auto hidden
 function HandleOnActivate(ObjectReference akActionRef)
     DEBUGTraceself(self, "HandleOnActivate", "Called in state which does not define it.")
 endfunction
-function HandleOnPowerChange(bool abPowerOn)
+function HandlePowerChange(bool abPowerOn)
+    DEBUGTraceself(self, "HandlePowerChange", "Called in state which does not define it.")
 endfunction
 function HandleSceneEnd(Scene akScene)
+    DEBUGTraceself(self, "HandleSceneEnd", "Called in state which does not define it.")
 endfunction
 
 function UpdateSwitchState()
-    self.SetOpen(!bOpen && !self.IsPowered())
+    self.SetOpen(!bOpen)
+endfunction
+function SetSwitchState(bool abFlag)
+    bOpen = abFlag
+    UpdateSwitchState()
 endfunction
 
 function ToggleSwitchState(ObjectReference akActionRef)
@@ -45,12 +133,9 @@ function ToggleSwitchState(ObjectReference akActionRef)
         bool canOpen = companionActor && companionActor.HasKeyword(DLC01CanOpenMechanistDoorsKeyword)
         if (player.IsInScene())
             DLC01DRSMechanistDoorControlBeepDeny.Play(self)
-        elseif (canOpen && akActionRef == companionActor)
+        elseif (canOpen)
             ; Our robot Followers_Companion activated the controller.
-            StartRobotScanningScene(false)
-        elseif (canOpen && companionActor.PathToReference(self, 1.0))
-            ; Our robot Followers_Companion was able to successfully path to the controller.
-            StartRobotScanningScene(true)
+            StartRobotScanningScene(akActionRef == player)
         else
             ; Otherwise, play a negative acknowledgement.
             DLC01DRSMechanistDoorControlBeepDeny.Play(self)
@@ -66,11 +151,10 @@ function StartRobotScanningScene(bool abIsPlayerInitiated)
     DLC01MasterQuest_MechDoorControl_Target.ForceRefTo(self)
 
     ; Register for scene end event and start the appropriate scene.
+    self.RegisterForRemoteEvent(DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated, "OnEnd")
     if (abIsPlayerInitiated)
-        self.RegisterForRemoteEvent(DLC01MasterQuest_MechanistDoorControlScenePlayerInitiated, "OnEnd")
         DLC01MasterQuest_MechanistDoorControlScenePlayerInitiated.Start()
     else
-        self.RegisterForRemoteEvent(DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated, "OnEnd")
         DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated.Start()
     endif
 endfunction
@@ -80,7 +164,6 @@ auto state Unloaded
     endevent
 
     event OnLoad()
-        UpdateSwitchState()
         if (self.IsPowered())
             if (bOpen)
                 self.GoToState("GreenOn")
@@ -98,20 +181,19 @@ state RedOn
         if (asOldState == "GreenOn")
 			DLC01DRSMechanistDoorControlClose.Play(self)
 			self.PlayAnimationAndWait("Play01", "Done")
-            bOpen = false
+            SetSwitchState(false)
 		else
 			self.PlayAnimation("StartOnRed01")
 		endif
     endevent
     event OnEndState(string asNewState)
-        self.UnregisterForRemoteEvent(DLC01MasterQuest_MechanistDoorControlScenePlayerInitiated, "OnEnd")
         self.UnregisterForRemoteEvent(DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated, "OnEnd")
     endevent
 
     function HandleOnActivate(ObjectReference akActionRef)
         ToggleSwitchState(akActionRef)
     endfunction
-    function HandleOnPowerChange(bool abPowerOn)
+    function HandlePowerChange(bool abPowerOn)
         if (!abPowerOn)
             self.GoToState("RedOff")
         endif
@@ -143,8 +225,8 @@ state RedOff
             endif
         endif
     endfunction
-    function HandleOnPowerChange(bool abPowerOn)
-        if (abPowerOn)
+    function HandlePowerChange(bool abPowerOn)
+        if (bOpen)
             self.GoToState("GreenOn")
         else
             self.GoToState("RedOn")
@@ -179,7 +261,7 @@ state RedBlinking
             DLC01DRSMechanistDoorControlBeepDeny.Play(self)
         endif
     endfunction
-    function HandleOnPowerChange(bool abPowerOn)
+    function HandlePowerChange(bool abPowerOn)
         if (!abPowerOn)
             self.GoToState("RedOff")
         endif
@@ -198,15 +280,17 @@ state GreenOn
 			DLC01DRSMechanistDoorControlOpen.Play(self)
 			self.PlayAnimationAndWait("Play01", "Done")
 			DLC01DRSMechanistDoorControlBeepConfirm.Play(self)
-            bOpen = true
-            UpdateSwitchState()
+            SetSwitchState(true)
 		endif
+    endevent
+    event OnEndState(string asNewState)
+        self.UnregisterForRemoteEvent(DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated, "OnEnd")
     endevent
 
     function HandleOnActivate(ObjectReference akActionRef)
         ToggleSwitchState(akActionRef)
     endfunction
-    function HandleOnPowerChange(bool abPowerOn)
+    function HandlePowerChange(bool abPowerOn)
         if (!abPowerOn)
             self.GoToState("RedOff")
         endif
@@ -221,14 +305,13 @@ event OnActivate(ObjectReference akActionRef)
     HandleOnActivate(akActionRef)
 endevent
 event OnPowerOn(ObjectReference akPowerGenerator)
-    UpdateSwitchState()
-    HandleOnPowerChange(true)
+    HandlePowerChange(true)
 endevent
 event OnPowerOff()
-    UpdateSwitchState()
-    HandleOnPowerChange(false)
+    HandlePowerChange(false)
 endevent
 event Scene.OnEnd(Scene akSender)
+    self.UnregisterForRemoteEvent(akSender, "OnEnd")
     HandleSceneEnd(akSender)
 endevent
 
@@ -239,3 +322,4 @@ function GotoState(string asNewState)
     DEBUGTraceSelf(self, "GotoState", "Transitioning from state '" + self.GetState() + "' to '" + asNewState + "'.")
     parent.GoToState(asNewState)
 endfunction
+/;

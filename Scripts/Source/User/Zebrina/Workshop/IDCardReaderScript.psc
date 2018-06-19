@@ -1,5 +1,6 @@
 scriptname Zebrina:Workshop:IDCardReaderScript extends Zebrina:Workshop:ConfigurableObjectScript
 
+import Zebrina:System
 import Zebrina:WorkshopUtility
 
 customevent GreenStateBegin
@@ -20,13 +21,14 @@ group AutoFill
 
     MiscObject property WorkshopGenericIDCard auto const mandatory
     Component property c_Plastic auto const mandatory
-    GlobalVariable property ConfigTerminalComponentCount1 auto const mandatory
+    GlobalVariable property ConfigTerminalValue2 auto const mandatory
     { Used to check player plastic count in configuration terminal. }
+	GlobalVariable property ConfigTerminalValue3 auto const mandatory
+	{ Used to check if door mode is enabled or not in configuration terminal. }
 
 	Keyword property WorkshopLinkAttachedDoor auto const mandatory
 	Quest property WorkshopFindClosestDoor auto const mandatory
 	Keyword property WorkshopIgnoredDoor auto const mandatory
-
     Zebrina:Workshop:WorkshopDevicesMasterScript property ZebrinasWorkshopDevices auto const mandatory
 endgroup
 group WorkshopDevicesMaster
@@ -40,9 +42,49 @@ endgroup
 
 float property fTimeoutSeconds = 10.0 auto hidden
 
+ObjectReference property LinkedDoorRef hidden
+	ObjectReference function get()
+		return self.GetLinkedRef(WorkshopLinkAttachedDoor)
+	endfunction
+	function set(ObjectReference akLinkedDoorRef)
+		ObjectReference doorRef = LinkedDoorRef
+		if (doorRef)
+			self.UnregisterForRemoteEvent(doorRef, "OnActivate")
+			doorRef.SetActivateTextOverride(none)
+			doorRef.BlockActivation(false)
+			doorRef.ResetKeyword(WorkshopIgnoredDoor)
+		endif
+		if (akLinkedDoorRef)
+			akLinkedDoorRef.AddKeyword(WorkshopIgnoredDoor)
+			akLinkedDoorRef.BlockActivation(true)
+			akLinkedDoorRef.SetActivateTextOverride(WorkshopIDCardReaderDoorActivateOverride)
+			self.RegisterForRemoteEvent(akLinkedDoorRef, "OnActivate")
+		endif
+		self.SetLinkedRef(akLinkedDoorRef, WorkshopLinkAttachedDoor)
+	endfunction
+endproperty
+
+bool bDoorModeFlag = false
+bool property bDoorMode hidden
+	bool function get()
+		return bDoorModeFlag
+	endfunction
+	function set(bool abFlag)
+		if (abFlag)
+			ZebrinasWorkshopDevices.RegisterForRemoteWorkshopEvents(self)
+			AttachToClosestDoor()
+		else
+			ZebrinasWorkshopDevices.UnregisterForRemoteWorkshopEvents(self)
+			LinkedDoorRef = none
+		endif
+		bDoorModeFlag = abFlag
+	endfunction
+endproperty
+
 ObjectReference[] linkedIDCards
 ThreadLock listLock
 bool bHasBeenActivated = false
+bool bOpen = false
 
 event OnInit()
     linkedIDCards = new ObjectReference[0]
@@ -51,38 +93,27 @@ endevent
 
 ; Zebrina:Workshop:ConfigurableObjectScript override.
 function StartConfiguration()
-    ConfigTerminalComponentCount1.SetValue(Zebrina:WorkshopUtility.GetPlayerComponentCount(c_Plastic))
+    ConfigTerminalValue2.SetValue(Zebrina:WorkshopUtility.GetPlayerComponentCount(c_Plastic))
+	ConfigTerminalValue3.SetValueInt(bDoorMode as int)
     parent.StartConfiguration()
 endfunction
 
-function UnattachFromDoor()
-	ObjectReference currentDoor = self.GetLinkedRef(WorkshopLinkAttachedDoor)
-	if (currentDoor)
-		self.UnregisterForRemoteEvent(currentDoor, "OnActivate")
-		currentDoor.SetActivateTextOverride(none)
-		currentDoor.BlockActivation(false)
-		currentDoor.ResetKeyword(WorkshopIgnoredDoor)
-		self.SetLinkedRef(none, WorkshopLinkAttachedDoor)
+function UpdateSwitchState()
+    self.SetOpen(!bOpen)
+endfunction
+function SetSwitchState(bool abOpen = true)
+	bOpen = abOpen
+	UpdateSwitchState()
+endfunction
+
+function AttachToClosestDoor()
+	if (self.IsEnabled())
+		LinkedDoorRef = ZebrinasWorkshopDevices.FindWorkshopObject(self, WorkshopFindClosestDoor, fAttachToDoorRadius)
 	endif
 endfunction
-ObjectReference function AttachToClosestDoor()
-	ObjectReference currentDoor = ZebrinasWorkshopDevices.FindWorkshopObject(self, WorkshopFindClosestDoor, fAttachToDoorRadius)
-	self.SetLinkedRef(currentDoor, WorkshopLinkAttachedDoor)
-	if (currentDoor)
-		currentDoor.AddKeyword(WorkshopIgnoredDoor)
-		currentDoor.BlockActivation(true)
-		currentDoor.SetActivateTextOverride(WorkshopIDCardReaderDoorActivateOverride)
-		self.RegisterForRemoteEvent(currentDoor, "OnActivate")
-	endif
-	return currentDoor
-endfunction
-function ActivateAttachedDoorAndWait(int aiWaitForOpenState)
-	ObjectReference currentDoor = self.GetLinkedRef(WorkshopLinkAttachedDoor)
-	if (currentDoor)
-		while (currentDoor.GetOpenState() != aiWaitForOpenState && currentDoor.GetOpenState() != aiWaitForOpenState + 1)
-			currentDoor.Activate(self, true)
-			Utility.Wait(0.1)
-		endwhile
+function OpenAttachedDoor(bool abOpen = true)
+	if (bDoorMode && LinkedDoorRef)
+		LinkedDoorRef.SetOpen(abOpen)
 	endif
 endfunction
 
@@ -188,12 +219,14 @@ endstate
 state GreenState
 	event OnBeginState(string asOldState)
 		self.StartTimer(fTimeoutSeconds)
-		ActivateAttachedDoorAndWait(1)
+		SetSwitchState(true)
+		OpenAttachedDoor()
 	endevent
 	event OnEndState(string asNewState)
 		self.SendCustomEvent("GreenStateEnd")
 		self.PlayAnimation("Reset")
-		ActivateAttachedDoorAndWait(3)
+		SetSwitchState(false)
+		OpenAttachedDoor(false)
 	endevent
 
 	event OnTimer(int aiTimerID)
@@ -202,6 +235,7 @@ state GreenState
 endstate
 
 event OnActivate(ObjectReference akActionRef)
+	UpdateSwitchState()
 	if (akActionRef is Actor && akActionRef.HasDirectLOS(self))
 		HandleActivation(self, akActionRef as Actor)
 	endif
@@ -229,30 +263,22 @@ event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
 	self.RegisterForRemoteEvent(akWorkshopRef, "OnWorkshopObjectPlaced")
 	self.RegisterForRemoteEvent(akWorkshopRef, "OnWorkshopObjectMoved")
 	self.RegisterForRemoteEvent(akWorkshopRef, "OnWorkshopObjectDestroyed")
-	AttachToClosestDoor()
-endevent
-event OnWorkshopObjectMoved(ObjectReference akWorkshopRef)
-	UnattachFromDoor()
-	AttachToClosestDoor()
 endevent
 event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
-	UnattachFromDoor()
-
+	self.UnregisterForAllRemoteEvents()
+	LinkedDoorRef = none
     LockThread(listLock)
-
     int i = 0
     while (i < linkedIDCards.Length)
 		WorkshopIDCardsIS.RemoveRef(linkedIDCards[i])
         WorkshopIDCards.RemoveRef(linkedIDCards[i])
         i += 1
     endwhile
-
     UnlockThread(listLock)
 endevent
 
 function HandleRemoteWorkshopEvent(ObjectReference akSender, ObjectReference akReference)
-	if (akSender is WorkshopScript && akReference != self && akReference.GetBaseObject() is Door)
-		UnattachFromDoor()
+	if (akReference.GetBaseObject() is Door && (akReference.GetDistance(self) < LinkedDoorRef.GetDistance(self)))
 		AttachToClosestDoor()
 	endif
 endfunction
@@ -260,8 +286,14 @@ event ObjectReference.OnWorkshopObjectPlaced(ObjectReference akSender, ObjectRef
 	HandleRemoteWorkshopEvent(akSender, akReference)
 endevent
 event ObjectReference.OnWorkshopObjectMoved(ObjectReference akSender, ObjectReference akReference)
-	HandleRemoteWorkshopEvent(akSender, akReference)
+	if (akReference == self)
+		AttachToClosestDoor()
+	else
+		HandleRemoteWorkshopEvent(akSender, akReference)
+	endif
 endevent
 event ObjectReference.OnWorkshopObjectDestroyed(ObjectReference akSender, ObjectReference akReference)
-	HandleRemoteWorkshopEvent(akSender, akReference)
+	if (akReference == LinkedDoorRef)
+		AttachToClosestDoor()
+	endif
 endevent

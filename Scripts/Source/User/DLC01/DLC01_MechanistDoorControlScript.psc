@@ -85,11 +85,24 @@ String pendingState = "StartRedOn"					;While changing states, the state we want
 											;have finally finished animating.
 Actor player 									;Player ref.
 
-; ADDED BY ZEBRINA
-WorkshopScript property DLC01LairWorkshop_Workbench
+; Added by Zebrina.
+WorkshopScript workshopRef = none
+WorkshopScript property DLC01LairWorkshopWorkbench hidden
 	WorkshopScript function get()
-		return Game.GetFormFromFile(0x000e4c, "DLCRobot.esm") as WorkshopScript
+		if (!workshopRef)
+			workshopRef = Game.GetFormFromFile(0x000e4c, "DLCRobot.esm") as WorkshopScript
+		endif
+		return workshopRef
 	EndFunction
+endproperty
+GlobalVariable playerCanOpenGlobal = none
+bool property PlayerCanOpen hidden
+	bool function get()
+		if (!playerCanOpenGlobal)
+			playerCanOpenGlobal = Game.GetFormFromFile(0x2c27e0, "ZebrinasWorkshopDevices.esp") as GlobalVariable
+		endif
+		return playerCanOpenGlobal.GetValue() != 0.0
+	endfunction
 endproperty
 
 ;---------------------------
@@ -182,7 +195,7 @@ State RedOn
 	Function HandleOnActivate(ObjectReference akActivator, ObjectReference source, bool sourceIsPrimaryController)
 		if (akActivator == player)
 			Actor companionActor = Companion.GetActorRef()
-			if (akActivator.HasKeyword(DLC01CanOpenMechanistDoorsKeyword)) ;/ EDIT BY ZEBRINA /; || DLC01LairWorkshop_Workbench.OwnedByPlayer == true ;/ END OF EDIT BY ZEBRINA /;
+			if (akActivator.HasKeyword(DLC01CanOpenMechanistDoorsKeyword) || (PlayerCanOpen && DLC01LairWorkshopWorkbench.OwnedByPlayer))
 				;For Debug: The player will not normally have this keyword, but if they do (because a debug stage was set),
 				;just go ahead and open the door directly (no scene will play and no callback will be received).
 				UseDoorControl(sourceIsPrimaryController)
@@ -264,17 +277,63 @@ State GreenOn
 			;The doors are already open. Just play the positive adknowledgement sound.
 			;DLC01DRSMechanistDoorControlBeepConfirm.Play(source)
 
-			; EDIT BY ZEBRINA
+			; Added by Zebrina.
 			; If Mechanist's Lair workshop is not yet owned - do the old stuff.
 			; If it is owned - close the door.
-			if (DLC01LairWorkshop_Workbench.OwnedByPlayer == true)
-				ChangeState("RedOn", sourceIsPrimaryController)
+			; Basically do the same as in RedOn state.
+			if (DLC01LairWorkshopWorkbench.OwnedByPlayer && akActivator == player)
+				Actor companionActor = Companion.GetActorRef()
+				if (akActivator.HasKeyword(DLC01CanOpenMechanistDoorsKeyword) || PlayerCanOpen)
+					UseDoorControl(sourceIsPrimaryController)
+				elseif (player.IsInScene())
+					; Play beep confirm instead of deny.
+					DLC01DRSMechanistDoorControlBeepConfirm.Play(source)
+				elseif (companionActor && (companionActor.HasKeyword(DLC01CanOpenMechanistDoorsKeyword)))
+					if (sourceIsPrimaryController && (companionActor.GetDistance(player) > 900) && (!player.HasDetectionLOS(companionActor)) && (companionTeleportMarkers != None))
+						int i = 0
+						bool movedCompanion = false
+						while ((!movedCompanion) && (i < companionTeleportMarkers.Length))
+							if (!player.HasDetectionLOS(companionTeleportMarkers[i]))
+								companionActor.MoveTo(companionTeleportMarkers[i])
+								movedCompanion = true
+							endif
+							i = i + 1
+						endwhile
+					endif
+					StartDoorControlScene(True, sourceIsPrimaryController)
+				else
+					; Play beep confirm instead of deny.
+					DLC01DRSMechanistDoorControlBeepConfirm.Play(source)
+				endif
+			elseif (DLC01LairWorkshopWorkbench.OwnedByPlayer && akActivator.HasKeyword(DLC01CanOpenMechanistDoorsKeyword))
+				StartDoorControlScene(False, sourceIsPrimaryController)
 			else
+				; Default
 				DLC01DRSMechanistDoorControlBeepConfirm.Play(source)
 			endif
-			; END OF EDIT BY ZEBRINA
 		EndIf
 	EndFunction
+
+	; Added by Zebrina.
+	; Does the same as in RedOn state.
+	function StartDoorControlScene(bool isPlayerInitiated, bool sourceIsPrimaryController)
+		DLC01MasterQuest_PrimaryMechanistDoorControlAlias.ForceRefTo(Self)
+		if (sourceIsPrimaryController)
+			DLC01MasterQuest_TargetMechanistDoorControlAlias.ForceRefTo(Self)
+		else
+			DLC01MasterQuest_TargetMechanistDoorControlAlias.ForceRefTo(mySecondary)
+		endif
+		if (isPlayerInitiated)
+			DLC01MasterQuest_MechanistDoorControlScenePlayerInitiated.Start()
+		else
+			DLC01MasterQuest_MechanistDoorControlSceneRobotInitiated.Start()
+		endif
+	endfunction
+
+	; Added by Zebrina.
+	function UseDoorControl(bool sourceIsPrimaryController)
+		ChangeState("RedOn", sourceIsPrimaryController)
+	endfunction
 EndState
 
 

@@ -63,8 +63,6 @@ event OnWorkshopObjectMoved(ObjectReference akReference)
 endevent
 event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
     self.UnregisterForAllRemoteEvents()
-    ObjectReference lidRef = self.GetLinkedRef(LinkKeyword)
-    lidRef.DisableNoWait()
-    lidRef.Delete()
+    self.GetLinkedRef(LinkKeyword).Delete()
     self.SetLinkedRef(none, LinkKeyword)
 endevent

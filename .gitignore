@@ -1,6 +1,9 @@
 # Back-ups
 *.bak
 
+# SCOL
+Meshes/SCOL/
+
 # Bethesda archives.
 *.ba2
 

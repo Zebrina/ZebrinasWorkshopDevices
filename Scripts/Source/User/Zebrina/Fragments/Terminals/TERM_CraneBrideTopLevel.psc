@@ -10,7 +10,7 @@ if (craneBridgeRef.GetValue(WorkshopObjectReversePowerState_AV) == 0.0)
 else
     craneBridgeRef.ModValue(WorkshopObjectReversePowerState_AV, -1.0)
 endif
-(craneBridgeRef as Zebrina:Workshop:PoweredTwoStateActivator).HandlePowerStateChange()
+(craneBridgeRef as Zebrina:Workshop:PoweredTwoStateActivator).HandlePowerStateChange(craneBridgeRef.IsPowered())
 ;END CODE
 EndFunction
 ;END FRAGMENT

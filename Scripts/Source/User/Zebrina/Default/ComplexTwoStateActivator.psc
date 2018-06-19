@@ -6,7 +6,9 @@ group AutoFill
     Keyword property TwoStateCollisionKeyword = none auto const mandatory
 endgroup
 group Collision
-    Static property CollisionObject = none auto const mandatory
+    Static property NavCutObject = none auto const
+    string property sNavCutObject = "NavCut" auto const
+    Static property CollisionObject = none auto const
     string property sCollisionNode = "NavCut" auto const
     bool property bReverseCollision = false auto const
 endgroup
@@ -42,9 +44,8 @@ event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
     parent.OnWorkshopObjectPlaced(akWorkshopRef)
 endevent
 event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
-    ObjectReference collisionRef = self.GetLinkedRef(TwoStateCollisionKeyword)
-    collisionRef.DisableNoWait()
-    collisionRef.Delete()
-    self.SetLinkedRef(none, TwoStateCollisionKeyword)
     self.UnregisterForRemoteEvent(akWorkshopRef, "OnWorkshopMode")
+    ObjectReference collisionRef = self.GetLinkedRef(TwoStateCollisionKeyword)
+    self.SetLinkedRef(none, TwoStateCollisionKeyword)
+    collisionRef.Delete()
 endevent

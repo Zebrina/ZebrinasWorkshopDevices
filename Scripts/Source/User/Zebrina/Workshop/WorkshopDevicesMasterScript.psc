@@ -1,6 +1,9 @@
 scriptname Zebrina:Workshop:WorkshopDevicesMasterScript extends Quest
 
+import Zebrina:System
 import Zebrina:WorkshopUtility
+
+customevent PowerLiftManipulated
 
 struct ItemSortingData
     Form item
@@ -8,6 +11,7 @@ struct ItemSortingData
 endstruct
 
 group AutoFill
+    Keyword property WorkshopItemKeyword auto const mandatory
     GlobalVariable property ZWDPCGlobal auto const mandatory
     Message property ZebrinasWorkshopDevices_UpdateMessage auto const mandatory
     Message property ZebrinasWorkshopDevices_AutoDoorsPatchMessage auto const mandatory
@@ -32,8 +36,8 @@ endgroup
 int iMQ102_CompleteCharGenStage = 10 const
 int iMin03_CompleteQuestStage = 980 const
 
-int iModVersion = 3 const
-int iScriptVersion = 3
+int iModVersion = 4 const
+int iScriptVersion = 4
 
 bool bPatched_AutoDoors = false
 
@@ -52,8 +56,6 @@ bool function CheckQuestStage(Quest akQuest, int auiStageID)
 endfunction
 
 event OnQuestInit()
-    ZWDPCGlobal.SetValueInt(Zebrina:System:PC.IsPC() as int)
-
     findWorkshopObjectLock = new ThreadLock
 
     Actor player = Game.GetPlayer()
@@ -92,7 +94,7 @@ endevent
 function ApplyItemSortingPatch()
     DebugTraceSelf(self, "ApplyItemSortingPatch", "Started")
 
-    if (Zebrina:WorkshopUtility.IsItemSortingEnabled())
+    if (IsItemSortingEnabled())
         int i = 0
         while (i < ItemSortingDataList.Length)
             ItemSortingDataList[i].item.SetName(ItemSortingDataList[i].name)
@@ -143,6 +145,16 @@ function CheckMods()
     endif
 endfunction
 
+; POWERLIFT MANAGEMENT
+
+function SendPowerLiftManipulatedEvent(ObjectReference akPowerLiftRef)
+    var[] args = new var[1]
+    args[0] = akPowerLiftRef
+    self.SendCustomEvent("PowerLiftManipulated", args)
+endfunction
+
+; UPDATE
+
 function Update()
     ;Debug.StartScriptProfiling("Zebrina:Workshop:WorkshopDevicesMasterScript")
     Debug.OpenUserLog("ZebrinasWorkshopDevices")
@@ -159,11 +171,13 @@ function Update()
             ; Needs to re-apply patch.
             bPatched_AutoDoors = false
         endif
-        ;/if (iScriptVersion < 4)
-            ; Added surival specific recipe components.
-            ; PC ONLY
-            self.RegisterForRemoteEvent(Game.GetPlayer(), "OnDifficultyChanged")
-        endif/;
+        if (iScriptVersion < 4)
+            ; Fixed position of outside button.
+            if (Min03CastleArmoryDoorController.IsRunning())
+                Min03CastleArmoryDoorController.Stop()
+                Min03CastleArmoryDoorController.Start()
+            endif
+        endif
 
         iScriptVersion = iModVersion
 
@@ -175,6 +189,8 @@ endfunction
 event Actor.OnPlayerLoadGame(Actor akSender)
     Update()
 endevent
+
+; WORKSHOP UTILITY
 
 ObjectReference function FindWorkshopObject(ObjectReference akSearchTargetRef, Quest akSearchQuest, float afRadius)
     LockThread(findWorkshopObjectLock)
@@ -188,4 +204,17 @@ ObjectReference function FindWorkshopObject(ObjectReference akSearchTargetRef, Q
     SearchTarget.Clear()
     UnlockThread(findWorkshopObjectLock)
     return foundRef
+endfunction
+
+function RegisterForRemoteWorkshopEvents(ObjectReference akReference)
+    ObjectReference workshopRef = akReference.GetLinkedRef(WorkshopItemKeyword)
+    akReference.RegisterForRemoteEvent(workshopRef, "OnWorkshopObjectPlaced")
+	akReference.RegisterForRemoteEvent(workshopRef, "OnWorkshopObjectMoved")
+	akReference.RegisterForRemoteEvent(workshopRef, "OnWorkshopObjectDestroyed")
+endfunction
+function UnregisterForRemoteWorkshopEvents(ObjectReference akReference)
+    ObjectReference workshopRef = akReference.GetLinkedRef(WorkshopItemKeyword)
+    akReference.UnregisterForRemoteEvent(workshopRef, "OnWorkshopObjectPlaced")
+	akReference.UnregisterForRemoteEvent(workshopRef, "OnWorkshopObjectMoved")
+	akReference.UnregisterForRemoteEvent(workshopRef, "OnWorkshopObjectDestroyed")
 endfunction

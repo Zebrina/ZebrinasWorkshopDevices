@@ -17,25 +17,21 @@ ObjectReference function GetDoor()
 endfunction
 
 function OpenDoor(ObjectReference akDoorRef, bool abOpen)
-    if (akDoorRef is Zebrina:Default:TwoStateActivator)
-        LockThreadToReference(self, WorkshopObjectHandlePowerState)
-
+    if (!self.HasKeyword(WorkshopObjectHandlePowerState) && akDoorRef is Zebrina:Default:TwoStateActivator)
+        self.AddKeyword(WorkshopObjectHandlePowerState)
         (akDoorRef as Zebrina:Default:TwoStateActivator).SetOpen(abOpen)
-
-        UnlockThreadFromReference(self, WorkshopObjectHandlePowerState)
+        self.ResetKeyword(WorkshopObjectHandlePowerState)
     endif
 endfunction
 function LockDoor(ObjectReference akDoorRef, bool abLock, int aiLockLevel)
-    if (akDoorRef.GetBaseObject() is Door)
-        LockThreadToReference(self, WorkshopObjectHandlePowerState)
-
+    if (!self.HasKeyword(WorkshopObjectHandlePowerState) && akDoorRef.GetBaseObject() is Door)
+        self.AddKeyword(WorkshopObjectHandlePowerState)
         akDoorRef.SetLockLevel(aiLockLevel)
         ; Lock only if closed.
         if (akDoorRef.GetOpenState() == 3)
             akDoorRef.Lock(abLock)
         endif
-
-        UnlockThreadFromReference(self, WorkshopObjectHandlePowerState)
+        self.ResetKeyword(WorkshopObjectHandlePowerState)
     endif
 endfunction
 
@@ -57,17 +53,16 @@ function TerminalLockDoor(bool abLock)
     endif
 endfunction
 
-function HandlePowerState()
+function HandlePowerState(bool abPowered)
     if (!self.HasKeyword(WorkshopSecurityGateTerminalMode))
         ObjectReference doorRef = GetDoor()
-        bool bIsPowered = self.IsPowered()
-        OpenDoor(doorRef, bIsPowered)
-        LockDoor(doorRef, bIsPowered, 253)
+        OpenDoor(doorRef, abPowered)
+        LockDoor(doorRef, abPowered, 253)
     endif
 endfunction
 event OnPowerOn(ObjectReference akPowerGenerator)
-    HandlePowerState()
+    HandlePowerState(true)
 endevent
 event OnPowerOff()
-    HandlePowerState()
+    HandlePowerState(false)
 endevent

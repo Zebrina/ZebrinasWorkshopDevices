@@ -1,4 +1,86 @@
-scriptname Zebrina:Default:TwoStateActivator extends ObjectReference const
+scriptname Zebrina:Default:TwoStateActivator extends ObjectReference default
+
+group AnimationEvents
+    string property sOpenEvent = "Open" auto const
+    string property sOpenEndEvent = "Done" auto const
+    string property sCloseEvent = "Close" auto const
+    string property sCloseEndEvent = "Done" auto const
+    string property sStartsOpenEvent = "Opened" auto const
+endgroup
+group Optional
+    Message property DoorOpenActivateOverride = none auto const
+    Message property DoorCloseActivateOverride = none auto const
+    bool property bStartsOpen = false auto const
+    bool property bBlockActivation = true auto const
+endgroup
+
+; ObjectReference override.
+function SetOpen(bool abOpen = true)
+endfunction
+function SetOpenNoWait(bool abOpen = true)
+    var[] args = new var[1]
+    args[0] = abOpen
+    self.CallFunctionNoWait("SetOpen", args)
+endfunction
+
+state Closing
+    event OnBeginState(string asOldState)
+        self.SetActivateTextOverride(DoorOpenActivateOverride)
+        ; This forces a UI update.
+        self.BlockActivation(bBlockActivation)
+        self.PlayAnimationAndWait(sCloseEvent, sCloseEndEvent)
+        self.GoToState("IsClosed")
+    endevent
+endstate
+state IsClosed
+    event OnActivate(ObjectReference akActionRef)
+        self.GoToState("Opening")
+    endevent
+
+    function SetOpen(bool abOpen = true)
+        if (abOpen)
+            self.GoToState("Opening")
+        endif
+    endfunction
+endstate
+state Opening
+    event OnBeginState(string asOldState)
+        self.SetActivateTextOverride(DoorCloseActivateOverride)
+        ; This forces a UI update.
+        self.BlockActivation(bBlockActivation)
+        self.PlayAnimationAndWait(sOpenEvent, sOpenEndEvent)
+        self.GoToState("IsOpen")
+    endevent
+endstate
+state IsOpen
+    event OnActivate(ObjectReference akActionRef)
+        self.GoToState("Closing")
+    endevent
+
+    function SetOpen(bool abOpen = true)
+        if (!abOpen)
+            self.GoToState("Closing")
+        endif
+    endfunction
+endstate
+
+; Only one of these initialization events will run.
+event OnInit()
+    if (bStartsOpen)
+        self.SetActivateTextOverride(DoorCloseActivateOverride)
+        self.GoToState("IsOpen")
+    else
+        self.SetActivateTextOverride(DoorOpenActivateOverride)
+        self.GoToState("IsClosed")
+    endif
+endevent
+event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
+    self.OnInit()
+endevent
+
+; OLD SCRIPT
+;/
+scriptname Zebrina:Default:TwoStateActivator extends ObjectReference default const
 
 import Zebrina:WorkshopUtility
 
@@ -13,11 +95,9 @@ group Animations
     string property sCloseEvent = "Closing" auto const
     { Used only if iAnimationMode is 0. }
     int property iAnimationMode = 0 auto const
-    {
-        0 => PlayAnimationAndWait
-        1 => PlayAnimation
-        2 => PlayGamebryoAnimation
-    }
+    { 0 => PlayAnimationAndWait
+      1 => PlayAnimation
+      2 => PlayGamebryoAnimation }
     float property fOpenAnimDelay = 0.0 auto const
     { Used only if iAnimationMode is 1 or 2. }
     float property fCloseAnimDelay = 0.0 auto const
@@ -50,7 +130,7 @@ function PlayAnimationAndWaitInternal(string asAnimation, string asEventName, fl
     endif
 endfunction
 
-; Native override.
+; ObjectReference override.
 int function GetOpenState()
     return self.GetValue(WorkshopObjectOpenState_AV) as int
 endfunction
@@ -70,7 +150,7 @@ function PlaySoundInternal(bool abOpen)
     endif
 endfunction
 
-; Native override.
+; ObjectReference override.
 function SetOpen(bool abOpen = true)
     int openState = self.GetOpenState()
     if (abOpen && (openState == 3 || openState == 4))
@@ -96,7 +176,7 @@ function SetOpenNoWait(bool abOpen = true)
 endfunction
 
 event OnActivate(ObjectReference akActionRef)
-    if (!bScriptedActivationOnly && (!bPlayerOrFavorActivationOnly || IsPlayerActionRef(akActionRef)))
+    if (!bScriptedActivationOnly && IsPlayerActionRef(akActionRef))
         int openState = self.GetOpenState()
         if (openState == 1)
             self.SetOpen(false)
@@ -112,3 +192,4 @@ event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
         self.SetValue(WorkshopObjectOpenState_AV, 1.0)
     endif
 endevent
+/;

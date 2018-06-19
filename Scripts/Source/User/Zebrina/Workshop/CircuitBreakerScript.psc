@@ -1,78 +1,105 @@
-scriptname Zebrina:Workshop:CircuitBreakerScript extends Zebrina:Workshop:LidScript const
+scriptname Zebrina:Workshop:CircuitBreakerScript extends ObjectReference
 
 group AutoFill
-    Message property CircuitBreakerDeniedMessage auto const
-    ActorValue property WorkshopObjectIsAnimating_AV auto const mandatory
-    ActorValue property WorkshopObjectOpenState_AV auto const mandatory
-endgroup
-group CircuitBreaker
-	string property sSwitchAnimation = "Play01" auto const
-    string property sSwitchEventName = "Done" auto const
-    bool property bIsGenerator = false auto const
-    float property fLidOpenResetDelay = 0.5 auto const
-    float property fPowerOffResetDelay = 0.5 auto const
+    MovableStatic property Sparks01Large auto const mandatory
 endgroup
 
-function ToggleSwitchState()
-    while (self.GetValue(WorkshopObjectIsAnimating_AV) == 1.0)
-        Utility.Wait(0.01)
-    endwhile
-    self.SetValue(WorkshopObjectIsAnimating_AV, 1.0)
-    if ((self.GetOpenState() == 3) != (self.GetValue(WorkshopObjectOpenState_AV) == 1.0))
-        self.PlayAnimationAndWait(sSwitchAnimation, sSwitchEventName)
-        self.SetValue(WorkshopObjectOpenState_AV, 1.0 - self.GetValue(WorkshopObjectOpenState_AV))
+ObjectReference sparksRef
+bool bLidOpen = true
+
+event OnLoad()
+    self.RegisterForAnimationEvent(self, "TransitionComplete")
+    ;Zebrina:WorkshopUtility.DEBUGTraceSelf(self, "OnLoad", "registered for animation event")
+    ; In case we get stuck, do this every onload.
+    if (self.GetState() == "WaitForTransitionComplete")
+        self.BlockActivation(false, !bLidOpen)
+        self.GoToState("WaitForActivation")
     endif
-    self.SetValue(WorkshopObjectIsAnimating_AV, 0.0)
-endfunction
-function SetSwitchState(bool abShouldBeActivated)
-    if (abShouldBeActivated != (self.GetValue(WorkshopObjectOpenState_AV) == 1.0))
-        ToggleSwitchState()
-    endif
+endevent
+
+function SetLidOpen(bool abOpen)
+    bLidOpen = abOpen
+    self.BlockActivation(!bLidOpen, !bLidOpen)
 endfunction
 
-; LidScript override.
-function HandleLidState(ObjectReference akLidRef, bool abOpen, bool abWasActivated)
-    parent.HandleLidState(akLidRef, abOpen, abWasActivated)
-    if (abOpen)
-        if (!bIsGenerator && !self.IsPowered())
-            self.StartTimer(fLidOpenResetDelay)
+auto state WaitForActivation
+    event OnActivate(ObjectReference akActionRef)
+        self.GoToState("WaitForTransitionComplete")
+        self.BlockActivation(true, !bLidOpen)
+    endevent
+endstate
+state WaitForTransitionComplete
+    event OnAnimationEvent(ObjectReference akSource, string asEventName)
+        ;Zebrina:WorkshopUtility.DEBUGTraceSelf(self, "OnAnimationEvent", "received '" + asEventName + "'")
+        self.BlockActivation(!bLidOpen, !bLidOpen)
+        self.GoToState("WaitForActivation")
+    endevent
+
+    event OnActivate(ObjectReference akActionRef)
+    endevent
+endstate
+state DestroyedClosedLid
+    function SetLidOpen(bool abOpen)
+        if (abOpen)
+            bLidOpen = true
+            self.BlockActivation(false, false)
+            Utility.Wait(0.1)
+            self.GoToState("Destroyed")
         endif
-    else
-        ; Lid was closed before time out.
-        self.CancelTimer()
-    endif
-endfunction
+    endfunction
+endstate
+state Destroyed
+    event OnBeginState(string asOldState)
+        sparksRef.EnableNoWait()
+        self.PlayAnimation("TurnOff")
+    endevent
+    event OnEndState(string asNewState)
+        sparksRef.DisableNoWait()
+    endevent
 
-; LidScript override.
-event OnActivate(ObjectReference akActionRef)
-    ;parent.OnActivate(akActionRef)
-    ToggleSwitchState()
-    if (!bIsGenerator && !self.IsPowered())
-        if (akActionRef == Game.GetPlayer())
-            CircuitBreakerDeniedMessage.Show()
+    function SetLidOpen(bool abOpen)
+        bLidOpen = abOpen
+        self.BlockActivation(!bLidOpen, !bLidOpen)
+        if (bLidOpen)
+            sparksRef.EnableNoWait()
+        else
+            Utility.Wait(0.3)
+            sparksRef.DisableNoWait()
         endif
-        SetSwitchState(false)
+    endfunction
+
+    event OnActivate(ObjectReference akActionRef)
+        self.GoToState("WaitForTransitionComplete")
+        self.BlockActivation(true, !bLidOpen)
+    endevent
+
+    event OnWorkshopObjectGrabbed(ObjectReference akReference)
+        sparksRef.DisableNoWait()
+    endevent
+    event OnWorkshopObjectMoved(ObjectReference akReference)
+        sparksRef.MoveToNode(self, "DestroyedEffectNode")
+        if (bLidOpen)
+            sparksRef.EnableNoWait()
+        endif
+    endevent
+endstate
+
+event OnDestructionStageChanged(int aiOldStage, int aiCurrentStage)
+    if (aiCurrentStage == 1)
+        self.ClearDestruction()
+        if (bLidOpen)
+            self.GoToState("Destroyed")
+        else
+            self.GoToState("DestroyedClosedLid")
+        endif
     endif
 endevent
 
-event OnPowerOff()
-    if (!bIsGenerator && IsLidOpen())
-        self.StartTimer(fPowerOffResetDelay)
-    endif
-endevent
-event OnPowerOn(ObjectReference akPowerGenerator)
-    ; Power came back before time out.
-    self.CancelTimer()
-endevent
-
-event OnTimer(int aiTimerID)
-    if (IsLidOpen() && !self.IsPowered())
-        SetSwitchState(false)
-    endif
-endevent
-
-; LidScript override.
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
-    parent.OnWorkshopObjectPlaced(akWorkshopRef)
-    self.SetOpen() ; Start off.
+    sparksRef = self.PlaceAtNode("DestroyedEffectNode", Sparks01Large, abInitiallyDisabled = true)
+    sparksRef.DisableNoWait()
+    sparksRef.SetScale(0.4)
+endevent
+event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
+    sparksRef.Delete()
 endevent

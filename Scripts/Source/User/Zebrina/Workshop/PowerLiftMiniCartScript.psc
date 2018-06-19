@@ -9,11 +9,11 @@ struct PowerLiftPanel
 endstruct
 
 group AutoFill
-	Zebrina:Workshop:PowerLiftMasterScript property WorkshopPowerLiftMaster auto const mandatory
 	Keyword property WorkshopLinkObjectConfiguration auto const mandatory
 	Keyword property WorkshopLinkPowerLift auto const mandatory
 	GlobalVariable property PowerLiftFloorCount auto const mandatory
 	Message property PowerLiftSelectFloorDialogue auto const mandatory
+	Zebrina:Workshop:WorkshopDevicesMasterScript property ZebrinasWorkshopDevices auto const mandatory
 endgroup
 group PowerLift
 	Activator property PrimaryCallButtonBaseObject auto const mandatory
@@ -52,14 +52,13 @@ ObjectReference property PrimaryCallButton hidden
 		return kPrimaryCallButton
 	endfunction
 	function set(ObjectReference akPrimaryCallButtonRef)
+		if (kPrimaryCallButton)
+			self.UnregisterForRemoteEvent(kPrimaryCallButton, "OnActivate")
+			kPrimaryCallButton.Delete()
+		endif
 		if (akPrimaryCallButtonRef)
 			akPrimaryCallButtonRef.SetLinkedRef(self, WorkshopLinkObjectConfiguration)
 			self.RegisterForRemoteEvent(akPrimaryCallButtonRef, "OnActivate")
-		endif
-		if (kPrimaryCallButton)
-			self.UnregisterForRemoteEvent(kPrimaryCallButton, "OnActivate")
-			kPrimaryCallButton.DisableNoWait()
-			kPrimaryCallButton.Delete()
 		endif
 		kPrimaryCallButton = akPrimaryCallButtonRef
 	endfunction
@@ -70,14 +69,13 @@ ObjectReference property MoveButton hidden
 		return kMoveButton
 	endfunction
 	function set(ObjectReference akMoveButtonRef)
+		if (kMoveButton)
+			self.UnregisterForRemoteEvent(kMoveButton, "OnActivate")
+			kMoveButton.Delete()
+		endif
 		if (akMoveButtonRef)
 			akMoveButtonRef.SetLinkedRef(self, WorkshopLinkObjectConfiguration)
 			self.RegisterForRemoteEvent(akMoveButtonRef, "OnActivate")
-		endif
-		if (kMoveButton)
-			self.UnregisterForRemoteEvent(kMoveButton, "OnActivate")
-			kMoveButton.DisableNoWait()
-			kMoveButton.Delete()
 		endif
 		kMoveButton = akMoveButtonRef
 	endfunction
@@ -146,7 +144,6 @@ bool function TogglePanel(PowerLiftPanel data, bool abEnable)
 		self.WaitFor3DLoad()
 		data.ref = self.PlaceAtNode(data.attachNode, data.baseObject, abAttach = true)
 	elseif (!abEnable && data.ref)
-		data.ref.DisableNoWait()
 		data.ref.Delete()
 		data.ref = none
 	endif
@@ -285,7 +282,6 @@ event ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akAct
 endevent
 
 function Initialize()
-	self.WaitFor3DLoad()
 	PrimaryCallButton = self.PlaceAtNode(sPrimaryCallButtonAttachNode, PrimaryCallButtonBaseObject)
 	MoveButton = self.PlaceAtNode(sMoveButtonAttachNode, MoveButtonBaseObject, abAttach = true)
 
@@ -294,14 +290,15 @@ function Initialize()
 	RightSidePanelEnabled = bHasRightSidePanel
 	RampEnabled = bHasRamp
 
-	WorkshopPowerLiftMaster.SendPowerLiftManipulatedEvent(self)
+	ZebrinasWorkshopDevices.SendPowerLiftManipulatedEvent(self)
 endfunction
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
 	Initialize()
 endevent
 event OnReset()
-	Debug.MessageBox("Zebrina:Workshop:PowerLiftMiniCartScript:OnReset")
+	self.WaitFor3DLoad()
 	Initialize()
+	DEBUGTraceSelf(self, "OnReset", "...")
 endevent
 event OnWorkshopObjectGrabbed(ObjectReference akWorkshopRef)
 	PrimaryCallButton.DisableNoWait()
@@ -310,7 +307,7 @@ event OnWorkshopObjectMoved(ObjectReference akWorkshopRef)
 	PrimaryCallButton.MoveToNode(self, sPrimaryCallButtonAttachNode)
 	PrimaryCallButton.EnableNoWait()
 
-	WorkshopPowerLiftMaster.SendPowerLiftManipulatedEvent(self)
+	ZebrinasWorkshopDevices.SendPowerLiftManipulatedEvent(self)
 endevent
 event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
 	PrimaryCallButton = none
@@ -321,5 +318,5 @@ event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
 	RightSidePanelEnabled = false
 	RampEnabled = false
 
-	WorkshopPowerLiftMaster.SendPowerLiftManipulatedEvent(self)
+	ZebrinasWorkshopDevices.SendPowerLiftManipulatedEvent(self)
 endevent
