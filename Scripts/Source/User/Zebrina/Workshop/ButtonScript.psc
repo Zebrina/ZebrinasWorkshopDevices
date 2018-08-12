@@ -18,6 +18,7 @@ auto state WaitForActivation
 endstate
 state WaitForTimeout
     event OnActivate(ObjectReference akActionRef)
+		self.PlayAnimationAndWait(sButtonPressEvent, sEndEvent)
         self.StartTimer(fTimeoutSeconds)
     endevent
 
