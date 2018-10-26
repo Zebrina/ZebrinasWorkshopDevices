@@ -15,8 +15,8 @@ group PowerLift
 	float property fCartPositionZOffset = 16.0 auto const
 	float property fFullDistanceZ = 4096.0 auto const
 	float property fFullAnimationDuration = 53.333 auto const
-	float property fCartSafeRadius = 112.0 auto const
-	Activator property PlayerOnElevatorTrigger auto const mandatory
+	float property fCartPushOutDuration = 0.0 auto const
+	Activator property PlayerOnElevatorTrigger = none auto const
 endgroup
 group PowerLiftConfigurable
 	float property fLiftSpeedMult = 1.0 auto conditional
@@ -27,7 +27,7 @@ bool bCartMoving = false conditional
 
 ObjectReference kPrimaryCallButton
 ObjectReference kMoveButton
-ObjectReference playerOnElevatorTriggerRef
+ObjectReference playerOnElevatorTriggerRef = none
 
 float function GetLiftSpeed(ObjectReference akTargetLift)
 	return akTargetLift.GetAnimationVariableFloat("fSpeed")
@@ -58,10 +58,6 @@ float function GetCartPositionZ()
 	return GetCartPositionZMax() - (GetLiftLevel(self) * fFullDistanceZ)
 endfunction
 
-float function GetCartSpeedByDistanceZ(float fDistanceZ)
-	return (Math.Min(Math.Abs(fDistanceZ), fFullDistanceZ) / fFullDistanceZ) * fFullAnimationDuration * GetLiftSpeedMult()
-endfunction
-
 float function GetLiftPositionPercentage(float afPositionZ)
 	float posZMax = GetCartPositionZMax()
 	if (afPositionZ > posZMax)
@@ -84,7 +80,7 @@ endfunction
 function MoveCartToLevel(float afLevelPercentage)
 	float currentHeight = GetLiftLevel(self)
 	if (afLevelPercentage != currentHeight)
-		MoveCartInternal(self, Math.Abs(currentHeight - afLevelPercentage) * fFullAnimationDuration * GetLiftSpeedMult(), afLevelPercentage)
+		MoveCartInternal(self, Math.Abs(currentHeight - afLevelPercentage) * (fFullAnimationDuration - fCartPushOutDuration) * GetLiftSpeedMult(), afLevelPercentage)
 	endif
 endfunction
 function MoveCartToPositionZ(float afPositionZ)
@@ -92,7 +88,7 @@ function MoveCartToPositionZ(float afPositionZ)
 		float moveToHeight = GetLiftPositionPercentage(afPositionZ)
 		float currentHeight = GetLiftLevel(self)
 		if (moveToHeight != currentHeight)
-			MoveCartInternal(self, Math.Abs(currentHeight - moveToHeight) * fFullAnimationDuration * GetLiftSpeedMult(), moveToHeight)
+			MoveCartInternal(self, Math.Abs(currentHeight - moveToHeight) * (fFullAnimationDuration - fCartPushOutDuration) * GetLiftSpeedMult(), moveToHeight)
 		endif
 	endif
 endfunction
@@ -182,7 +178,9 @@ function Initialize()
 	kMoveButton = self.PlaceAtNode(sMoveButtonAttachNode, MoveButtonBaseObject, abAttach = true)
 	self.RegisterForRemoteEvent(kMoveButton, "OnActivate")
 
-	playerOnElevatorTriggerRef = self.PlaceAtNode("PlayerOnElevatorTriggerNode", PlayerOnElevatorTrigger, abAttach = true)
+	if (PlayerOnElevatorTrigger)
+		playerOnElevatorTriggerRef = self.PlaceAtNode("PlayerOnElevatorTriggerNode", PlayerOnElevatorTrigger, abAttach = true)
+	endif
 endfunction
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
 	Initialize()
@@ -208,8 +206,10 @@ event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
 	kMoveButton.Delete()
 	kMoveButton = none
 
-	playerOnElevatorTriggerRef.Delete()
-	playerOnElevatorTriggerRef = none
+	if (playerOnElevatorTriggerRef)
+		playerOnElevatorTriggerRef.Delete()
+		playerOnElevatorTriggerRef = none
+	endif
 endevent
 
 ;/ OLD SCRIPT
