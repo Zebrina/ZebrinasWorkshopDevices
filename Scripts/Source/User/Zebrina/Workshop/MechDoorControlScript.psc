@@ -11,7 +11,7 @@ group AutoFill
 	Sound property DLC01DRSMechanistDoorControlBeepDeny auto const mandatory
 	Sound property DLC01DRSMechanistDoorControlBeepConfirm auto const mandatory
 endgroup
-group QuestAliases
+group QuestAliasesAndScenes
     ReferenceAlias property Followers_Companion auto const mandatory
     ReferenceAlias property DLC01MasterQuest_MechDoorControl_Primary auto const mandatory
     ReferenceAlias property DLC01MasterQuest_MechDoorControl_Target auto const mandatory
@@ -21,7 +21,7 @@ group QuestAliases
 	{ On DLC01MasterQuest, a scene in which the robot scans and opens the door control. }
 endgroup
 
-event OnInit()
+event OnLoad()
     self.BlockActivation()
 endevent
 

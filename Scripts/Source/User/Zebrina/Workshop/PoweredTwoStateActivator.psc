@@ -1,24 +1,28 @@
 scriptname Zebrina:Workshop:PoweredTwoStateActivator extends Zebrina:Default:TwoStateActivator
 
-import Zebrina:WorkshopUtility
-
+group AutoFill
+    Keyword property WorkshopScriptControlledKeyword auto const mandatory
+endgroup
 group Configurable
     bool property bOpenWhenPowered = true auto
     { If false, will close when powered. }
 endgroup
 
-bool bPowerStateChangeInProgress = false
+; Zebrina:Default:TwoStateActivator override.
+event OnActivate(ObjectReference akActionRef)
+endevent
 
+bool powerStateChangeInProgress = false
 function HandlePowerStateChange(bool abWasPowered)
-    if (!bPowerStateChangeInProgress)
-        bPowerStateChangeInProgress = true
+    if (!powerStateChangeInProgress && !self.HasKeyword(WorkshopScriptControlledKeyword))
+        powerStateChangeInProgress = true
         Utility.Wait(0.01) ; Wait to avoid fake OnPowerOn events.
         if (abWasPowered == self.IsPowered())
-            while ((self.IsPowered() == (self.GetState() == "IsOpen")) != bOpenWhenPowered)
+            while ((self.IsPowered() == (self.GetOpenState() == 1)) != bOpenWhenPowered)
                 self.SetOpen(self.IsPowered() == bOpenWhenPowered)
             endwhile
         endif
-        bPowerStateChangeInProgress = false
+        powerStateChangeInProgress = false
     endif
 endfunction
 

@@ -2,6 +2,222 @@ scriptname Zebrina:Workshop:PowerLiftMiniCartScript extends ObjectReference cond
 
 import Zebrina:WorkshopUtility
 
+group AutoFill
+	Keyword property WorkshopLinkPowerLift auto const mandatory
+	GlobalVariable property PowerLiftFloorCount auto const mandatory
+	Message property PowerLiftSelectFloorDialogue auto const mandatory
+endgroup
+group PowerLift
+	Activator property PrimaryCallButtonBaseObject auto const mandatory
+	string property sPrimaryCallButtonAttachNode = "CallButtonNode" auto const
+	Activator property MoveButtonBaseObject auto const mandatory
+	string property sMoveButtonAttachNode = "MoveButtonNode" auto const
+	float property fCartPositionZOffset = 16.0 auto const
+	float property fFullDistanceZ = 4096.0 auto const
+	float property fFullAnimationDuration = 53.333 auto const
+	float property fCartSafeRadius = 112.0 auto const
+	Activator property PlayerOnElevatorTrigger auto const mandatory
+endgroup
+group PowerLiftConfigurable
+	float property fLiftSpeedMult = 1.0 auto conditional
+endgroup
+
+; Conditionals
+bool bCartMoving = false conditional
+
+ObjectReference kPrimaryCallButton
+ObjectReference kMoveButton
+ObjectReference playerOnElevatorTriggerRef
+
+float function GetLiftSpeed(ObjectReference akTargetLift)
+	return akTargetLift.GetAnimationVariableFloat("fSpeed")
+endfunction
+float function SetLiftSpeed(ObjectReference akTargetLift, float afSpeed)
+	akTargetLift.SetAnimationVariableFloat("fSpeed", afSpeed)
+endfunction
+float function GetLiftLevel(ObjectReference akTargetLift)
+	return akTargetLift.GetAnimationVariableFloat("fValue")
+endfunction
+float function SetLiftLevel(ObjectReference akTargetLift, float afValue)
+	akTargetLift.SetAnimationVariableFloat("fValue", afValue)
+endfunction
+float function GetLiftSpeedMult()
+	if (fLiftSpeedMult <= 0.0)
+		return 1.0
+	endif
+	return 1.0 / fLiftSpeedMult
+endfunction
+
+float function GetCartPositionZMax()
+	return self.z + fCartPositionZOffset
+endfunction
+float function GetCartPositionZMin()
+	return GetCartPositionZMax() - fFullDistanceZ
+endfunction
+float function GetCartPositionZ()
+	return GetCartPositionZMax() - (GetLiftLevel(self) * fFullDistanceZ)
+endfunction
+
+float function GetCartSpeedByDistanceZ(float fDistanceZ)
+	return (Math.Min(Math.Abs(fDistanceZ), fFullDistanceZ) / fFullDistanceZ) * fFullAnimationDuration * GetLiftSpeedMult()
+endfunction
+
+float function GetLiftPositionPercentage(float afPositionZ)
+	float posZMax = GetCartPositionZMax()
+	if (afPositionZ > posZMax)
+		return 1.0
+	elseif (afPositionZ < GetCartPositionZMin())
+		return 0.0
+	endif
+	return (posZMax - afPositionZ) / fFullDistanceZ
+endfunction
+
+function MoveCartInternal(ObjectReference akTargetLift, float afSpeed, float afValue, bool abWait = true)
+	SetLiftSpeed(akTargetLift, afSpeed)
+	SetLiftLevel(akTargetLift, afValue)
+	if (abWait)
+		akTargetLift.PlayAnimationAndWait("Play01", "Done")
+	else
+		akTargetLift.PlayAnimation("Play01")
+	endif
+endfunction
+function MoveCartToLevel(float afLevelPercentage)
+	float currentHeight = GetLiftLevel(self)
+	if (afLevelPercentage != currentHeight)
+		MoveCartInternal(self, Math.Abs(currentHeight - afLevelPercentage) * fFullAnimationDuration * GetLiftSpeedMult(), afLevelPercentage)
+	endif
+endfunction
+function MoveCartToPositionZ(float afPositionZ)
+	if (afPositionZ <= GetCartPositionZMax())
+		float moveToHeight = GetLiftPositionPercentage(afPositionZ)
+		float currentHeight = GetLiftLevel(self)
+		if (moveToHeight != currentHeight)
+			MoveCartInternal(self, Math.Abs(currentHeight - moveToHeight) * fFullAnimationDuration * GetLiftSpeedMult(), moveToHeight)
+		endif
+	endif
+endfunction
+function MoveCartToReference(ObjectReference akReference)
+	MoveCartToPositionZ(akReference.GetPositionZ())
+endfunction
+
+ObjectReference[] function GetCallButtonArray()
+	ObjectReference[] refs = self.GetRefsLinkedToMe(WorkshopLinkPowerLift)
+	if (refs.Length > 1)
+		SortCallButtonArray(refs, 0, refs.Length - 1)
+	endif
+	return refs
+endfunction
+; Quicksort, Hoare partition scheme.
+; Sorts from low to high z position.
+function SortCallButtonArray(ObjectReference[] arrCallButtons, int aiStart, int aiEnd)
+	if (aiStart < aiEnd)
+		int partition = SortCallButtonArrayPartition(arrCallButtons, aiStart, aiEnd)
+		SortCallButtonArray(arrCallButtons, aiStart, partition)
+		SortCallButtonArray(arrCallButtons, partition + 1, aiEnd)
+	endif
+endfunction
+int function SortCallButtonArrayPartition(ObjectReference[] arrCallButtons, int aiStart, int aiEnd)
+	ObjectReference pivot = arrCallButtons[aiStart]
+	int i = aiStart - 1
+	int j = aiEnd + 1
+	while (true)
+		i += 1
+		while (arrCallButtons[i].z < pivot.z)
+			i += 1
+		endwhile
+
+		j -= 1
+		while (arrCallButtons[j].z > pivot.z)
+			j -= 1
+		endwhile
+
+		if (i >= j)
+			return j
+		endif
+
+		ObjectReference temp = arrCallButtons[i]
+		arrCallButtons[i] = arrCallButtons[j]
+		arrCallButtons[j] = temp
+	endwhile
+endfunction
+
+function HandleActivation(ObjectReference akSender, ObjectReference akActionRef)
+	if (bCartMoving == false && IsPlayerActionRef(akActionRef))
+		bCartMoving = true
+		if (akSender == kMovebutton)
+			ObjectReference[] callButtons = GetCallButtonArray()
+			if (callButtons.Length == 1)
+				; If just two levels there's no point in showing the floor selection dialogue.
+				if (GetLiftLevel(self) == 0.0)
+					MoveCartToPositionZ(callButtons[0].z)
+				else
+					MoveCartToLevel(0.0)
+				endif
+			elseif (callButtons.Length > 1)
+				; Show floor selection dialogue.
+				PowerLiftFloorCount.SetValueInt(1 + callButtons.Length)
+				int selection = PowerLiftSelectFloorDialogue.Show()
+				if (selection != 19)
+					MoveCartToPositionZ(callButtons[selection].z)
+				else
+					MoveCartToLevel(0.0)
+				endif
+			endif
+		elseif (akSender == kPrimaryCallButton)
+			MoveCartToLevel(0.0)
+		else
+			MoveCartToPositionZ(akSender.z)
+		endif
+		bCartMoving = false
+	endif
+endfunction
+event ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akActionRef)
+	HandleActivation(akSender, akActionRef)
+endevent
+
+function Initialize()
+	kPrimaryCallButton = self.PlaceAtNode(sPrimaryCallButtonAttachNode, PrimaryCallButtonBaseObject)
+	self.RegisterForRemoteEvent(kPrimaryCallButton, "OnActivate")
+
+	kMoveButton = self.PlaceAtNode(sMoveButtonAttachNode, MoveButtonBaseObject, abAttach = true)
+	self.RegisterForRemoteEvent(kMoveButton, "OnActivate")
+
+	playerOnElevatorTriggerRef = self.PlaceAtNode("PlayerOnElevatorTriggerNode", PlayerOnElevatorTrigger, abAttach = true)
+endfunction
+event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
+	Initialize()
+endevent
+event OnReset()
+	self.WaitFor3DLoad()
+	Initialize()
+	DEBUGTraceSelf(self, "OnReset", "...")
+endevent
+event OnWorkshopObjectGrabbed(ObjectReference akWorkshopRef)
+	kPrimaryCallButton.DisableNoWait()
+endevent
+event OnWorkshopObjectMoved(ObjectReference akWorkshopRef)
+	kPrimaryCallButton.MoveToNode(self, sPrimaryCallButtonAttachNode)
+	kPrimaryCallButton.EnableNoWait()
+endevent
+event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
+	self.UnregisterForAllEvents()
+
+	kPrimaryCallButton.Delete()
+	kPrimaryCallButton = none
+
+	kMoveButton.Delete()
+	kMoveButton = none
+
+	playerOnElevatorTriggerRef.Delete()
+	playerOnElevatorTriggerRef = none
+endevent
+
+;/ OLD SCRIPT
+
+scriptname Zebrina:Workshop:PowerLiftMiniCartScript extends ObjectReference conditional
+
+import Zebrina:WorkshopUtility
+
 struct PowerLiftPanel
 	ObjectReference ref = none hidden
 	string attachNode = "REF_ATTACH_NODE"
@@ -13,7 +229,6 @@ group AutoFill
 	Keyword property WorkshopLinkPowerLift auto const mandatory
 	GlobalVariable property PowerLiftFloorCount auto const mandatory
 	Message property PowerLiftSelectFloorDialogue auto const mandatory
-	Zebrina:Workshop:WorkshopDevicesMasterScript property ZebrinasWorkshopDevices auto const mandatory
 endgroup
 group PowerLift
 	Activator property PrimaryCallButtonBaseObject auto const mandatory
@@ -24,6 +239,7 @@ group PowerLift
 	float property fFullDistanceZ = 4096.0 auto const
 	float property fFullAnimationDuration = 53.333 auto const
 	float property fCartSafeRadius = 112.0 auto const
+	Activator property PlayerOnElevatorTrigger auto const mandatory
 	bool property bCanAdjustSpeed = true auto const conditional
 endgroup
 group PowerLiftConfigurable
@@ -112,6 +328,8 @@ bool property RampEnabled hidden
 		bRampEnabled = bHasRamp && TogglePanel(BackPanelData, abFlag)
 	endfunction
 endproperty
+
+ObjectReference playerOnElevatorTriggerRef
 
 float function GetLiftSpeed(ObjectReference akTargetLift)
 	return akTargetLift.GetAnimationVariableFloat("fSpeed")
@@ -212,28 +430,27 @@ ObjectReference[] function GetCallButtonArray()
 	endif
 	return refs
 endfunction
-
 ; Quicksort, Hoare partition scheme.
 ; Sorts from low to high z position.
-function SortCallButtonArray(ObjectReference[] aaCallButtons, int aiStart, int aiEnd)
+function SortCallButtonArray(ObjectReference[] arrCallButtons, int aiStart, int aiEnd)
 	if (aiStart < aiEnd)
-		int partition = SortCallButtonArrayPartition(aaCallButtons, aiStart, aiEnd)
-		SortCallButtonArray(aaCallButtons, aiStart, partition)
-		SortCallButtonArray(aaCallButtons, partition + 1, aiEnd)
+		int partition = SortCallButtonArrayPartition(arrCallButtons, aiStart, aiEnd)
+		SortCallButtonArray(arrCallButtons, aiStart, partition)
+		SortCallButtonArray(arrCallButtons, partition + 1, aiEnd)
 	endif
 endfunction
-int function SortCallButtonArrayPartition(ObjectReference[] aaCallButtons, int aiStart, int aiEnd)
-	ObjectReference pivot = aaCallButtons[aiStart]
+int function SortCallButtonArrayPartition(ObjectReference[] arrCallButtons, int aiStart, int aiEnd)
+	ObjectReference pivot = arrCallButtons[aiStart]
 	int i = aiStart - 1
 	int j = aiEnd + 1
 	while (true)
 		i += 1
-		while (aaCallButtons[i].z < pivot.z)
+		while (arrCallButtons[i].z < pivot.z)
 			i += 1
 		endwhile
 
 		j -= 1
-		while (aaCallButtons[j].z > pivot.z)
+		while (arrCallButtons[j].z > pivot.z)
 			j -= 1
 		endwhile
 
@@ -241,9 +458,9 @@ int function SortCallButtonArrayPartition(ObjectReference[] aaCallButtons, int a
 			return j
 		endif
 
-		ObjectReference temp = aaCallButtons[i]
-		aaCallButtons[i] = aaCallButtons[j]
-		aaCallButtons[j] = temp
+		ObjectReference temp = arrCallButtons[i]
+		arrCallButtons[i] = arrCallButtons[j]
+		arrCallButtons[j] = temp
 	endwhile
 endfunction
 
@@ -290,7 +507,7 @@ function Initialize()
 	RightSidePanelEnabled = bHasRightSidePanel
 	RampEnabled = bHasRamp
 
-	ZebrinasWorkshopDevices.SendPowerLiftManipulatedEvent(self)
+	playerOnElevatorTriggerRef = self.PlaceAtNode("PlayerOnElevatorTriggerNode", PlayerOnElevatorTrigger, abAttach = true)
 endfunction
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
 	Initialize()
@@ -306,10 +523,10 @@ endevent
 event OnWorkshopObjectMoved(ObjectReference akWorkshopRef)
 	PrimaryCallButton.MoveToNode(self, sPrimaryCallButtonAttachNode)
 	PrimaryCallButton.EnableNoWait()
-
-	ZebrinasWorkshopDevices.SendPowerLiftManipulatedEvent(self)
 endevent
 event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
+	self.UnregisterForAllEvents()
+
 	PrimaryCallButton = none
 	MoveButton = none
 
@@ -318,5 +535,8 @@ event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
 	RightSidePanelEnabled = false
 	RampEnabled = false
 
-	ZebrinasWorkshopDevices.SendPowerLiftManipulatedEvent(self)
+	playerOnElevatorTriggerRef.Delete()
+	playerOnElevatorTriggerRef = none
 endevent
+
+/;

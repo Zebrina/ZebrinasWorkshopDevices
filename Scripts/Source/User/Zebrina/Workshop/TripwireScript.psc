@@ -14,47 +14,48 @@ group Other
     bool property bEnemiesOnly = true auto const
 endgroup
 
-bool function IsArmed()
-    if (bPoweredWhenArmed)
-        return self.GetOpenState() == 3
-    endif
-    return self.GetOpenState() == 1
-endfunction
-function SetArmed(bool abShouldBeArmed = true)
-    if (abShouldBeArmed != IsArmed())
-        if (abShouldBeArmed)
+bool property bArmed hidden
+    bool function get()
+        return (self.GetOpenState() == 3) == bPoweredWhenArmed
+    endfunction
+    function set(bool abFlag)
+        if (abFlag)
             self.PlayAnimation(sResetAnim)
         else
             self.PlayAnimation(sTriggerAnim)
         endif
-    endif
-    self.SetOpen(abShouldBeArmed != bPoweredWhenArmed)
-endfunction
+        self.SetOpen(abFlag != bPoweredWhenArmed)
+    endfunction
+endproperty
 
 bool function ShouldTrigger(ObjectReference akTriggerRef)
-    return akTriggerRef is Actor && (!bEnemiesOnly || (akTriggerRef as Actor).IsHostileToActor(Game.GetPlayer()))
+    return DEBUGTriggeredByPlayer(akTriggerRef) || (akTriggerRef is Actor && (!bEnemiesOnly || (akTriggerRef as Actor).IsHostileToActor(Game.GetPlayer())))
 endFunction
 
 event OnTriggerEnter(ObjectReference akActionRef)
-    if (ShouldTrigger(akActionRef) && IsArmed())
-        SetArmed(false)
+    if (ShouldTrigger(akActionRef) && bArmed)
+        bArmed = false
         if (TriggerSound)
             TriggerSound.Play(self)
         endif
     endif
 endevent
 event OnActivate(ObjectReference akActionRef)
-    if (IsArmed())
-        SetArmed(false)
+    if (bArmed)
+        bArmed = false
         if (DisarmSound)
             DisarmSound.Play(self)
         endif
     else
-        SetArmed(true)
+        bArmed = true
     endif
 endevent
 
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
     self.BlockActivation()
-    SetArmed(bStartArmed)
+    bArmed = bStartArmed
 endevent
+
+bool function DEBUGTriggeredByPlayer(ObjectReference akTriggerRef) debugonly
+    return akTriggerRef == Game.GetPlayer()
+endfunction

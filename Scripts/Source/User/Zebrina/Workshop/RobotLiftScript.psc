@@ -38,15 +38,6 @@ event Actor.OnCombatStateChanged(Actor akSender, Actor akTarget, int aeCombatSta
     endif
 endevent
 
-; DLC01:DLC01_RobotLiftScript override.
-function SpawnRobot(Form objectToPlace, int actorLevelMod = 1)
-	spawnedRobotRef = self.PlaceAtNode("LiftBase01", objectToPlace) as Actor
-    if (spawnedRobotRef)
-        spawnedRobotRef.SetUnconscious()
-    	spawnedRobotRef.WaitFor3DLoad()
-    endif
-endfunction
-
 function EnableLights(bool abEnable = true)
 endfunction
 
@@ -58,6 +49,20 @@ event OnAnimationEvent(ObjectReference akSource, string asEventName)
     elseif (asEventName == "Stop01")
         EnableLights(false)
     elseif (asEventName == "Done")
+        self.GoToState("Ready")
+        ;/
+        if (myQueue.Length > 0)
+            OnAnimationEvent(akSource, "Open")
+            DoPlaceObject(myQueue[0])
+            myQueue.Remove(0)
+            Self.SetAnimationVariableFloat("fspeed", Speed)
+            Self.PlayAnimation("Play01")
+            myLightsActive = True
+            StartTimer(0, CONST_LightsTimer)
+        Else
+            GoToState("Ready")
+        EndIf
+        /;
     endif
 endevent
 
@@ -87,3 +92,14 @@ event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
     ; Spawn marker.
     ;mySpawnMarker.Delete()
 endevent
+
+function DoPlaceObject(Form objectToPlace, int actorLevelMod = 1)
+    spawnedRobotRef = DLC01_LiftSpawnPoint.PlaceAtMe(objectToPlace) as Actor
+    if (spawnedRobotRef)
+        Debug.MessageBox(spawnedRobotRef)
+        spawnedRobotRef.SetUnconscious()
+        spawnedRobotRef.MoveToNode(self, "RobotPlacementNode")
+        spawnedRobotRef.SetAngle(0.0, 0.0, self.GetAngleZ())
+    	spawnedRobotRef.WaitFor3DLoad()
+    endif
+endfunction

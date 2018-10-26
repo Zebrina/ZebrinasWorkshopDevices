@@ -10,6 +10,14 @@ group Lid
     bool property bHideActivationText = true auto const
 endgroup
 
+event OnLoad()
+    ObjectReference lidRef = self.GetLinkedRef(LinkKeyword)
+    if (lidRef)
+        lidRef.WaitFor3DLoad()
+        lidRef.MoveToNode(self, sAttachNode)
+    endif
+endevent
+
 bool function IsLidOpen()
     return self.GetLinkedRef(LinkKeyword).GetOpenState() <= 2
 endfunction

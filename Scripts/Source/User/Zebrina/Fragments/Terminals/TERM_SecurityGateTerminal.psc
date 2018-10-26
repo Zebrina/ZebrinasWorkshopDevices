@@ -9,7 +9,7 @@ bool terminalEnabled = false
 ObjectReference[] refs = akTerminalRef.GetLinkedRefArray(LinkTerminalSecurityGate)
 int i = 0
 while (i < refs.Length)
-    terminalEnabled = terminalEnabled || refs[i].HasKeyword(WorkshopSecurityGateTerminalMode)
+    terminalEnabled = terminalEnabled || (refs[i] as Zebrina:Workshop:SecurityGateScript).bTerminalMode
     i += 1
 endwhile
 
@@ -23,6 +23,5 @@ EndFunction
 ;END FRAGMENT CODE - Do not edit anything between this and the begin comment
 
 Keyword property LinkTerminalSecurityGate auto const mandatory
-Keyword property WorkshopSecurityGateTerminalMode auto const mandatory
 GlobalVariable property NativeTerminalSecurityGateIsEnabled auto const mandatory
 GlobalVariable property NativeTerminalSecurityGateCount auto const mandatory

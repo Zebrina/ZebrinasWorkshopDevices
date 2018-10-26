@@ -82,6 +82,9 @@ WorkshopScript function GetCurrentWorkshop() global
     endif
     return none
 endfunction
+ObjectReference function GetObjectWorkshop(ObjectReference akReference) global
+    return akReference.GetLinkedRef(Game.GetForm(0x54ba6) as Keyword)
+endfunction
 int function GetPlayerComponentCount(Component akComponent) global
     int count = Game.GetPlayer().GetComponentCount(akComponent)
     WorkshopScript currentWorkshop = GetCurrentWorkshop()
@@ -119,7 +122,7 @@ endfunction
 
 ; DEBUG
 
-bool function GetDebugGlobalValue() global
+bool function GetDebugGlobalValue() global debugonly
     return (Game.GetFormFromFile(0x007f54, "ZebrinasWorkshopDevices.esp") as GlobalVariable).GetValue() != 0.0
 endfunction
 

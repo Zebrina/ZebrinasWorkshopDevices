@@ -1,41 +1,30 @@
 scriptname Zebrina:Workshop:TensionTriggerScript extends ObjectReference const
 
-import Zebrina:Workshop
-
 group AutoFill
-	Quest property WorkshopFindClosestDoor auto const mandatory
-	WorkshopDevicesMasterScript property ZebrinasWorkshopDevices auto const mandatory
-endgroup
-group Animations
-	string property sTripAnim = "Trip" auto const
-	string property sResetAnim = "Reset" auto const
-endgroup
-group TensionTrigger
-	float property fAttachToDoorRadius = 128.0 auto const
+	Zebrina:WorkshopDevicesParent property ZebrinasWorkshopDevices auto const mandatory
+	Message property WorkshopSelectTensionTriggerTargetDialogue auto const mandatory
+    Zebrina:WorkshopSelectionQuest property WorkshopSelectDoorIncludeScriptControlled auto const mandatory
 endgroup
 
-ObjectReference property LinkedDoorRef hidden
-	ObjectReference function get()
-		return self.GetLinkedRef()
-	endfunction
-	function set(ObjectReference akLinkedDoorRef)
-		ObjectReference doorRef = LinkedDoorRef
-		if (doorRef)
-			self.UnregisterForRemoteEvent(akLinkedDoorRef, "OnOpen")
-			self.UnregisterForRemoteEvent(akLinkedDoorRef, "OnClose")
-			self.UnregisterForRemoteEvent(akLinkedDoorRef, "OnActivate")
-		endif
-		if (akLinkedDoorRef)
-			self.RegisterForRemoteEvent(akLinkedDoorRef, "OnOpen")
-			self.RegisterForRemoteEvent(akLinkedDoorRef, "OnClose")
-			self.RegisterForRemoteEvent(akLinkedDoorRef, "OnActivate")
-			SetTriggered(akLinkedDoorRef.GetOpenState() <= 2)
+function InitializeDoor()
+    if (WorkshopSelectTensionTriggerTargetDialogue.Show() == 1)
+        ClearDoor()
+        ObjectReference doorRef = ZebrinasWorkshopDevices.SelectWorkshopObject(self, WorkshopSelectDoorIncludeScriptControlled)
+        if (doorRef)
+			self.RegisterForRemoteEvent(doorRef, "OnOpen")
+			self.RegisterForRemoteEvent(doorRef, "OnClose")
+			self.RegisterForRemoteEvent(doorRef, "OnActivate")
+			self.SetLinkedRef(doorRef)
+			SetTriggered(doorRef.GetOpenState() <= 2)
 		else
 			SetTriggered(true)
-		endif
-		self.SetLinkedRef(akLinkedDoorRef)
-	endfunction
-endproperty
+        endif
+    endif
+endfunction
+function ClearDoor()
+	self.UnregisterForAllRemoteEvents()
+	self.SetLinkedRef(none)
+endfunction
 
 bool function IsTriggered()
 	return self.GetOpenState() == 3
@@ -55,23 +44,8 @@ bool function ShouldTrigger(ObjectReference akTriggerRef)
     return true;akTriggerRef is Actor && (akTriggerRef as Actor).IsHostileToActor(Game.GetPlayer())
 endFunction
 
-function RegisterForDoorEvents(ObjectReference akTargetRef)
-	if (akTargetRef)
-		self.RegisterForRemoteEvent(akTargetRef, "OnOpen")
-		self.RegisterForRemoteEvent(akTargetRef, "OnClose")
-		self.RegisterForRemoteEvent(akTargetRef, "OnActivate")
-	endif
-endfunction
-function UnregisterForDoorEvents(ObjectReference akTargetRef)
-	if (akTargetRef)
-		self.UnregisterForRemoteEvent(akTargetRef, "OnOpen")
-		self.UnregisterForRemoteEvent(akTargetRef, "OnClose")
-		self.UnregisterForRemoteEvent(akTargetRef, "OnActivate")
-	endif
-endfunction
-
 event ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akActionRef)
-	if (!akSender.IsLocked() && ShouldTrigger(akActionRef))
+	if (akSender.GetOpenState() == 2 && ShouldTrigger(akActionRef))
 		SetTriggered(true)
 	endif
 endevent
@@ -84,37 +58,16 @@ event ObjectReference.OnClose(ObjectReference akSender, ObjectReference akAction
 	SetTriggered(false)
 endevent
 
-function AttachToClosestDoor()
-	LinkedDoorRef = ZebrinasWorkshopDevices.FindWorkshopObject(self, WorkshopFindClosestDoor, fAttachToDoorRadius)
-endfunction
+event OnLoad()
+	self.BlockActivation()
+endevent
 
+event OnWorkshopObjectMoved(ObjectReference akReference)
+	InitializeDoor()
+endevent
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
-	self.RegisterForRemoteEvent(akWorkshopRef, "OnWorkshopObjectPlaced")
-	self.RegisterForRemoteEvent(akWorkshopRef, "OnWorkshopObjectMoved")
-	self.RegisterForRemoteEvent(akWorkshopRef, "OnWorkshopObjectDestroyed")
-	AttachToClosestDoor()
+	InitializeDoor()
 endevent
 event OnWorkshopObjectDestroyed(ObjectReference akActionRef)
-	self.UnregisterForAllRemoteEvents()
-endevent
-
-function HandleRemoteWorkshopEvent(ObjectReference akSender, ObjectReference akReference)
-	if (akReference.GetBaseObject() is Door && akReference.GetDistance(self) < LinkedDoorRef.GetDistance(self))
-		AttachToClosestDoor()
-	endif
-endfunction
-event ObjectReference.OnWorkshopObjectPlaced(ObjectReference akSender, ObjectReference akReference)
-	HandleRemoteWorkshopEvent(akSender, akReference)
-endevent
-event ObjectReference.OnWorkshopObjectMoved(ObjectReference akSender, ObjectReference akReference)
-	if (akReference == self)
-		AttachToClosestDoor()
-	else
-		HandleRemoteWorkshopEvent(akSender, akReference)
-	endif
-endevent
-event ObjectReference.OnWorkshopObjectDestroyed(ObjectReference akSender, ObjectReference akReference)
-	if (akReference == LinkedDoorRef)
-		AttachToClosestDoor()
-	endif
+	ClearDoor()
 endevent

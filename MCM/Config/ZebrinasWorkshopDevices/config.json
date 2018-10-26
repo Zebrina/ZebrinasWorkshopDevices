@@ -25,13 +25,25 @@
             }
         },
         {
-            "text": "Pip-Boy Configuration Requires Engineering Weapon",
+            "text": "Door Close Timer",
+            "type": "slider",
+            "help": "If a door has been set to automatically close, this is the duration it will stay open.",
+            "valueOptions": {
+                "min": 5,
+                "max": 60,
+                "step": 1,
+                "sourceType": "GlobalValue",
+                "sourceForm": "ZebrinasWorkshopDevices.esp|1F114C"
+            }
+        },
+        {
+            "text": "Complex Recipes",
             "type": "switcher",
-            "help": "To avoid accidentally entering Pip-Boy configuration when you just want to use your devices a specific engineering weapon is required.",
+            "help": "Makes some recipes a bit more complex by including non-standard components. Enabled by default if starting a game on survival.",
             "valueOptions":
             {
                 "sourceType": "GlobalValue",
-                "sourceForm": "ZebrinasWorkshopDevices.esp|1a87ac"
+                "sourceForm": "ZebrinasWorkshopDevices.esp|342BC0"
             }
         },
         {
@@ -42,30 +54,6 @@
             {
                 "sourceType": "GlobalValue",
                 "sourceForm": "ZebrinasWorkshopDevices.esp|1caa56"
-            }
-        },
-        {
-            "text": "Workshop Filters",
-            "type": "section"
-        },
-        {
-            "text": "Hide Legacy Night-time (Timed) Switches",
-            "type": "switcher",
-            "help": "It's sooooooooo ugly compared to the new ones...",
-            "valueOptions":
-            {
-                "sourceType": "GlobalValue",
-                "sourceForm": "ZebrinasWorkshopDevices.esp|1864d0"
-            }
-        },
-        {
-            "text": "Hide Radiating Switches and Generators",
-            "type": "switcher",
-            "help": "Pfft, if I want a radiating switch I'll wire a conduit to it!",
-            "valueOptions":
-            {
-                "sourceType": "GlobalValue",
-                "sourceForm": "ZebrinasWorkshopDevices.esp|1864c1"
             }
         }
     ]

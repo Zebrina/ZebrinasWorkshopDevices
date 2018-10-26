@@ -65,6 +65,38 @@ SetButtonTimeout(300.0)
 EndFunction
 ;END FRAGMENT
 
+;BEGIN FRAGMENT Fragment_Terminal_09
+Function Fragment_Terminal_09(ObjectReference akTerminalRef)
+;BEGIN CODE
+SetButtonTimeout(1.0)
+;END CODE
+EndFunction
+;END FRAGMENT
+
+;BEGIN FRAGMENT Fragment_Terminal_10
+Function Fragment_Terminal_10(ObjectReference akTerminalRef)
+;BEGIN CODE
+SetButtonTimeout(2.0)
+;END CODE
+EndFunction
+;END FRAGMENT
+
+;BEGIN FRAGMENT Fragment_Terminal_11
+Function Fragment_Terminal_11(ObjectReference akTerminalRef)
+;BEGIN CODE
+SetButtonTimeout(3.0)
+;END CODE
+EndFunction
+;END FRAGMENT
+
+;BEGIN FRAGMENT Fragment_Terminal_12
+Function Fragment_Terminal_12(ObjectReference akTerminalRef)
+;BEGIN CODE
+SetButtonTimeout(4.0)
+;END CODE
+EndFunction
+;END FRAGMENT
+
 ;END FRAGMENT CODE - Do not edit anything between this and the begin comment
 
 function SetButtonTimeout(float afValue)

@@ -102,4 +102,5 @@ event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
 endevent
 event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
     sparksRef.Delete()
+    sparksRef = none
 endevent

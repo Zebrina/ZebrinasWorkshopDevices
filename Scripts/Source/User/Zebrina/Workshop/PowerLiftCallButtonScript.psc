@@ -1,9 +1,62 @@
-scriptname Zebrina:Workshop:PowerLiftCallButtonScript extends Zebrina:Workshop:PowerLiftConfigurableObjectScript
+scriptname Zebrina:Workshop:PowerLiftCallButtonScript extends ObjectReference
+
+group AutoFill
+    Keyword property WorkshopLinkPowerLift auto const mandatory
+    Zebrina:WorkshopDevicesParent property ZebrinasWorkshopDevices auto const mandatory
+    Message property WorkshopSelectPowerLiftDialogue auto const mandatory
+	Zebrina:WorkshopSelectionQuest property WorkshopSelectPowerLift auto const mandatory
+endgroup
+
+Zebrina:Workshop:PowerLiftMiniCartScript kPowerLift = none
+Zebrina:Workshop:PowerLiftMiniCartScript property PowerLift hidden
+    Zebrina:Workshop:PowerLiftMiniCartScript function get()
+        return kPowerLift
+    endfunction
+    function set(Zebrina:Workshop:PowerLiftMiniCartScript akPowerLiftRef)
+        if (kPowerLift)
+            self.UnregisterForRemoteEvent(kPowerLift, "OnWorkshopObjectDestroyed")
+        endif
+        if (akPowerLiftRef)
+            self.RegisterForRemoteEvent(akPowerLiftRef, "OnWorkshopObjectDestroyed")
+        endif
+        self.SetLinkedRef(akPowerLiftRef, WorkshopLinkPowerLift)
+		kPowerLift = akPowerLiftRef
+    endfunction
+endproperty
+
+function FindPowerLift()
+    if (!WorkshopSelectPowerLift.IsRunning() && WorkshopSelectPowerLiftDialogue.Show() == 1)
+        PowerLift = ZebrinasWorkshopDevices.SelectWorkshopObject(self, WorkshopSelectPowerLift) as Zebrina:Workshop:PowerLiftMiniCartScript
+    endif
+endfunction
+
+; Zebrina:Workshop:PowerLiftConfigurableObjectScript override.
+event OnActivate(ObjectReference akActionRef)
+    if (PowerLift)
+        PowerLift.HandleActivation(self, akActionRef)
+    endif
+endevent
+
+event ObjectReference.OnWorkshopObjectDestroyed(ObjectReference akSender, ObjectReference akActionRef)
+    PowerLift = none
+endevent
+
+event OnWorkshopObjectPlaced(ObjectReference akReference)
+    FindPowerLift()
+endevent
+event OnWorkshopObjectMoved(ObjectReference akReference)
+    FindPowerLift()
+endevent
+event OnWorkshopObjectDestroyed(ObjectReference akReference)
+    PowerLift = none
+endevent
+
+;/ OLD SCRIPT
 
 group AutoFill
     Keyword property WorkshopPowerLiftKeyword auto const mandatory
     Keyword property WorkshopLinkPowerLift auto const mandatory
-    Zebrina:Workshop:WorkshopDevicesMasterScript property ZebrinasWorkshopDevices auto const mandatory
+    Zebrina:WorkshopDevicesParent property ZebrinasWorkshopDevices auto const mandatory
 endgroup
 group PowerLiftCallButton
     float property fPowerLiftSearchRadius = 16384.0 auto const
@@ -60,7 +113,7 @@ function FindPowerLift()
     PowerLift = newPowerLift as Zebrina:Workshop:PowerLiftMiniCartScript
 endfunction
 
-event Zebrina:Workshop:WorkshopDevicesMasterScript.PowerLiftManipulated(Zebrina:Workshop:WorkshopDevicesMasterScript akSender, var[] akArgs)
+event Zebrina:WorkshopDevicesParent.PowerLiftManipulated(Zebrina:WorkshopDevicesParent akSender, var[] akArgs)
     FindPowerLift()
 endevent
 
@@ -84,3 +137,5 @@ endevent
 event OnWorkshopObjectDestroyed(ObjectReference akReference)
     PowerLift = none
 endevent
+
+/;

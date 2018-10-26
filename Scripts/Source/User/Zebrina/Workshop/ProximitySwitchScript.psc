@@ -1,80 +1,68 @@
-scriptname Zebrina:Workshop:ProximitySwitchScript extends ObjectReference const
+scriptname Zebrina:Workshop:ProximitySwitchScript extends ObjectReference conditional
 
 group AutoFill
-    Keyword property LinkCustom01 auto const mandatory
+    Activator property WorkshopProximitySwitchTriggerBox auto const mandatory
 endgroup
-group ProximitySwitch
-    Activator property TriggerObject auto const mandatory
-    float property fTriggerObjectSize auto const mandatory
-    string property sTriggerObjectNode = "REF_ATTACH_NODE" auto const
-    bool property bIsGenerator = false auto const
-endgroup
-group Animations
-    bool property bUseAnimations = false auto const
-    string property sTurnOnAnimation = "TurnOn01" auto const
-    string property sTurnOffAnimation = "TurnOff01" auto const
+group Configurable
+    float property fTriggerDistance = 200.0 auto hidden
+    int property iTriggerCount = 1 auto hidden
+    bool property bTriggeredByHostile = true auto conditional hidden
+    bool property bTriggeredByFriendly = true auto conditional hidden
+    bool property bTriggeredByHuman = true auto conditional hidden
+    bool property bTriggeredByGhoul = true auto conditional hidden
+    bool property bTriggeredBySynth = true auto conditional hidden
+    bool property bTriggeredBySuperMutant = true auto conditional hidden
+    bool property bTriggeredByRobot = true auto conditional hidden
+    bool property bTriggeredByCreature = true auto conditional hidden
+    bool property bTriggeredByAnimal = true auto conditional hidden
 endgroup
 
-float property TriggerRadius hidden
-    float function get()
-        return self.GetLinkedRef(LinkCustom01).GetScale() * fTriggerObjectSize
-    endfunction
-    function set(float afSize)
-        ObjectReference triggerRef = self.GetLinkedRef(LinkCustom01)
-        triggerRef.Disable()
-        triggerRef.SetScale(afSize / fTriggerObjectSize)
-        triggerRef.EnableNoWait()
-    endfunction
-endproperty
+ObjectReference triggerBoxRef
+bool bWorkshopMode = true
 
-function UpdateSwitchState()
-    self.SetOpen(self.GetLinkedRef(LinkCustom01).GetTriggerObjectCount() == 0)
-    UpdateSwitchAnimation()
+function ResetTriggerBoxPosition()
+    triggerBoxRef.SetScale(fTriggerDistance / 128.0)
+    triggerBoxRef.MoveTo(self)
 endfunction
-function UpdateSwitchAnimation()
-    if (bUseAnimations)
-        if (self.GetOpenState() == 3 && self.IsPowered())
-            self.PlayAnimation(sTurnOnAnimation)
-        else
-            self.PlayAnimation(sTurnOffAnimation)
-        endif
-    endif
+
+function UpdateState()
+    self.SetOpen(!(!bWorkshopMode && triggerBoxRef.GetTriggerObjectCount() >= iTriggerCount))
+    Debug.Notification("triggerBoxRef trigger count: " + triggerBoxRef.GetTriggerObjectCount())
 endfunction
 
 event ObjectReference.OnTriggerEnter(ObjectReference akSender, ObjectReference akActionRef)
-    Debug.Notification("OnTriggerEnter(" + akSender.GetTriggerObjectCount() + "): " + akActionRef.GetBaseObject().GetName())
-    UpdateSwitchState()
+    UpdateState()
 endevent
 event ObjectReference.OnTriggerLeave(ObjectReference akSender, ObjectReference akActionRef)
-    Debug.Notification("OnTriggerLeave(" + akSender.GetTriggerObjectCount() + "): " + akActionRef.GetBaseObject().GetName())
-    UpdateSwitchState()
+    UpdateState()
 endevent
 
-event OnLoad()
-    UpdateSwitchState()
-endevent
-
-event OnPowerOn(ObjectReference akPowerGenerator)
-    if (!bIsGenerator)
-        UpdateSwitchState()
+event ObjectReference.OnWorkshopMode(ObjectReference akSender, bool abStart)
+    bWorkshopMode = abStart
+    if (abStart)
+        triggerBoxRef.Disable()
+    else
+        ResetTriggerBoxPosition()
+        triggerBoxRef.Enable()
     endif
-endevent
-event OnPowerOff()
-    UpdateSwitchAnimation()
-endevent
-
-event OnActivate(ObjectReference akActionRef)
-    ; Needed to ignore switch activation.
+    UpdateState()
 endevent
 
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
-    ObjectReference triggerRef = self.PlaceAtNode(sTriggerObjectNode, TriggerObject, abAttach = true)
-    self.RegisterForRemoteEvent(triggerRef, "OnTriggerEnter")
-    self.RegisterForRemoteEvent(triggerRef, "OnTriggerLeave")
-    self.SetLinkedRef(triggerRef, LinkCustom01)
-    TriggerRadius = fTriggerObjectSize
-    Debug.MessageBox("triggerRef form id: " + triggerRef.GetFormID())
+    self.BlockActivation()
+
+    triggerBoxRef = self.PlaceAtMe(WorkshopProximitySwitchTriggerBox)
+    triggerBoxRef.DisableNoWait()
+    triggerBoxRef.SetLinkedRef(self)
+    self.RegisterForRemoteEvent(triggerBoxRef, "OnTriggerEnter")
+    self.RegisterForRemoteEvent(triggerBoxRef, "OnTriggerLeave")
+
+    self.RegisterForRemoteEvent(akWorkshopRef, "OnWorkshopMode")
 endevent
-event OnWorkshopObjectDestroyed(ObjectReference akActionRef)
-    self.GetLinkedRef(LinkCustom01).Delete()
+
+event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
+    self.UnregisterForAllEvents()
+
+    triggerBoxRef.Delete()
+    triggerBoxRef = none
 endevent

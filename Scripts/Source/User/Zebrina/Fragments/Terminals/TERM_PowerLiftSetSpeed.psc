@@ -91,13 +91,10 @@ EndFunction
 
 ;END FRAGMENT CODE - Do not edit anything between this and the begin comment
 
-function SetElevatorSpeed(float afNewSpeedMult)
-    ObjectReference configureObjectRef = Game.GetPlayer().GetLinkedRef(WorkshopLinkObjectConfiguration)
-    if (configureObjectRef != none && configureObjectRef is Zebrina:Workshop:PowerLiftMiniCartScript)
-        (configureObjectRef as Zebrina:Workshop:PowerLiftMiniCartScript).fLiftSpeedMult = afNewSpeedMult
-        ConfigTerminalCurrentValue1.SetValue(afNewSpeedMult)
-    endif
+function SetElevatorSpeed(float afValue)
+    (Game.GetPlayer().GetLinkedRef(WorkshopLinkObjectConfiguration) as Zebrina:Workshop:PowerLiftMiniCartScript).fLiftSpeedMult = afValue
+    ConfigTerminalValue1.SetValue(afValue)
 endfunction
 
 Keyword property WorkshopLinkObjectConfiguration auto const mandatory
-GlobalVariable property ConfigTerminalCurrentValue1 auto const mandatory
+GlobalVariable property ConfigTerminalValue1 auto const mandatory

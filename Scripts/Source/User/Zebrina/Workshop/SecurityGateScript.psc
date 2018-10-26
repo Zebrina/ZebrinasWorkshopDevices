@@ -1,15 +1,14 @@
-scriptname Zebrina:Workshop:SecurityGateScript extends ObjectReference const
+scriptname Zebrina:Workshop:SecurityGateScript extends ObjectReference conditional
 
 import Math
 import Zebrina:WorkshopUtility
 
 group AutoFill
-    Keyword property WorkshopObjectHandlePowerState auto const mandatory
-    Keyword property WorkshopSecurityGateTerminalMode auto const mandatory
-endgroup
-group SecurityGate
     FormList property WorkshopSecurityGateList auto const mandatory
 endgroup
+
+bool property bTerminalMode = false auto conditional hidden
+bool bBusy = false conditional
 
 ObjectReference function GetDoor()
     float r = self.GetAngleZ()
@@ -17,26 +16,26 @@ ObjectReference function GetDoor()
 endfunction
 
 function OpenDoor(ObjectReference akDoorRef, bool abOpen)
-    if (!self.HasKeyword(WorkshopObjectHandlePowerState) && akDoorRef is Zebrina:Default:TwoStateActivator)
-        self.AddKeyword(WorkshopObjectHandlePowerState)
+    if (!bBusy && akDoorRef is Zebrina:Default:TwoStateActivator)
+        bBusy = true
         (akDoorRef as Zebrina:Default:TwoStateActivator).SetOpen(abOpen)
-        self.ResetKeyword(WorkshopObjectHandlePowerState)
+        bBusy = false
     endif
 endfunction
 function LockDoor(ObjectReference akDoorRef, bool abLock, int aiLockLevel)
-    if (!self.HasKeyword(WorkshopObjectHandlePowerState) && akDoorRef.GetBaseObject() is Door)
-        self.AddKeyword(WorkshopObjectHandlePowerState)
+    if (!bBusy && akDoorRef.GetBaseObject() is Door)
+        bBusy = true
         akDoorRef.SetLockLevel(aiLockLevel)
         ; Lock only if closed.
         if (akDoorRef.GetOpenState() == 3)
             akDoorRef.Lock(abLock)
         endif
-        self.ResetKeyword(WorkshopObjectHandlePowerState)
+        bBusy = false
     endif
 endfunction
 
 function TerminalOpenDoor(bool abOpen)
-    if (self.HasKeyword(WorkshopSecurityGateTerminalMode) && self.IsPowered())
+    if (bTerminalMode && self.IsPowered())
         var[] args = new var[2]
         args[0] = GetDoor()
         args[1] = abOpen
@@ -44,7 +43,7 @@ function TerminalOpenDoor(bool abOpen)
     endif
 endfunction
 function TerminalLockDoor(bool abLock)
-    if (self.HasKeyword(WorkshopSecurityGateTerminalMode) && self.IsPowered())
+    if (bTerminalMode && self.IsPowered())
         var[] args = new var[3]
         args[0] = GetDoor()
         args[1] = abLock
@@ -54,7 +53,7 @@ function TerminalLockDoor(bool abLock)
 endfunction
 
 function HandlePowerState(bool abPowered)
-    if (!self.HasKeyword(WorkshopSecurityGateTerminalMode))
+    if (!bTerminalMode)
         ObjectReference doorRef = GetDoor()
         OpenDoor(doorRef, abPowered)
         LockDoor(doorRef, abPowered, 253)

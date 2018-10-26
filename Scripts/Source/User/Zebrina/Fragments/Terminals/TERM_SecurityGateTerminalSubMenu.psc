@@ -73,16 +73,10 @@ function EnableSecurityGatesTerminalMode(ObjectReference akTerminalRef, bool abE
     ObjectReference[] refs = akTerminalRef.GetLinkedRefArray(LinkTerminalSecurityGate)
     int i = 0
     while (i < refs.Length)
-        if (abEnable)
-            refs[i].AddKeyword(WorkshopSecurityGateTerminalMode)
-        else
-            refs[i].ResetKeyword(WorkshopSecurityGateTerminalMode)
-        endif
+        (refs[i] as Zebrina:Workshop:SecurityGateScript).bTerminalMode = abEnable
     	i += 1
     endwhile
 endfunction
 
 Keyword property LinkTerminalSecurityGate auto const mandatory
-Keyword property WorkshopSecurityGateTerminalMode auto const mandatory
 GlobalVariable property NativeTerminalSecurityGateIsEnabled auto const mandatory
-GlobalVariable property NativeTerminalSecurityGateCount auto const mandatory

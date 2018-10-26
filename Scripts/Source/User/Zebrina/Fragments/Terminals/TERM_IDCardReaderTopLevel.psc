@@ -4,7 +4,7 @@ Scriptname Zebrina:Fragments:Terminals:TERM_IDCardReaderTopLevel Extends Termina
 ;BEGIN FRAGMENT Fragment_Terminal_01
 Function Fragment_Terminal_01(ObjectReference akTerminalRef)
 ;BEGIN CODE
-ConfigTerminalValue1.SetValue(GetConfigRef().fTimeoutSeconds)
+GetConfigRef().RegisterCards(Game.GetPlayer())
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -12,10 +12,7 @@ EndFunction
 ;BEGIN FRAGMENT Fragment_Terminal_02
 Function Fragment_Terminal_02(ObjectReference akTerminalRef)
 ;BEGIN CODE
-if (ConfigTerminalValue2.GetValue() > 0.0)
-	ConfigTerminalValue2.Mod(-1.0)
-	GetConfigRef().CreateNewIDCard(Game.GetPlayer())
-endif
+GetConfigRef().ClearCardRegistry()
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -23,17 +20,15 @@ EndFunction
 ;BEGIN FRAGMENT Fragment_Terminal_04
 Function Fragment_Terminal_04(ObjectReference akTerminalRef)
 ;BEGIN CODE
-GetConfigRef().bDoorMode = true
-ConfigTerminalValue3.SetValue(1.0)
+GetConfigRef().SetDoorOpen()
 ;END CODE
 EndFunction
 ;END FRAGMENT
 
-;BEGIN FRAGMENT Fragment_Terminal_05
-Function Fragment_Terminal_05(ObjectReference akTerminalRef)
+;BEGIN FRAGMENT Fragment_Terminal_06
+Function Fragment_Terminal_06(ObjectReference akTerminalRef)
 ;BEGIN CODE
-GetConfigRef().bDoorMode = false
-ConfigTerminalValue3.SetValue(0.0)
+ConfigTerminalValue1.SetValue(GetConfigRef().fTimeoutSeconds)
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -46,5 +41,3 @@ endfunction
 
 Keyword property WorkshopLinkObjectConfiguration auto const mandatory
 GlobalVariable property ConfigTerminalValue1 auto const mandatory
-GlobalVariable property ConfigTerminalValue2 auto const mandatory
-GlobalVariable property ConfigTerminalValue3 auto const mandatory

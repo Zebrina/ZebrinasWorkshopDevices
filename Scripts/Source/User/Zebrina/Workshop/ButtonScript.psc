@@ -5,30 +5,39 @@ string property sEndEvent = "End" auto const
 string property sTurnOnEvent = "TurnOn01" auto const
 string property sTurnOffEvent = "TurnOff01" auto const
 
-float property fTimeoutSeconds auto hidden
+float property fTimeoutSeconds = 5.0 auto hidden
 
 auto state WaitForActivation
     event OnActivate(ObjectReference akActionRef)
-        self.GoToState("WaitForTimeout")
+        self.GoToState("Transition")
         self.PlayAnimationAndWait(sButtonPressEvent, sEndEvent)
         self.PlayAnimation(sTurnOnEvent)
         self.SetOpen(false)
-        self.StartTimer(fTimeoutSeconds)
+        self.GoToState("WaitForTimeout")
     endevent
 endstate
+state Transition
+endstate
 state WaitForTimeout
-    event OnActivate(ObjectReference akActionRef)
-		self.PlayAnimationAndWait(sButtonPressEvent, sEndEvent)
+    event OnBeginState(string asOldState)
         self.StartTimer(fTimeoutSeconds)
     endevent
 
+    event OnActivate(ObjectReference akActionRef)
+        self.GoToState("Transition")
+		self.PlayAnimationAndWait(sButtonPressEvent, sEndEvent)
+        self.GoToState("WaitForTimeout")
+    endevent
+
     event OnTimer(int aiTimerID)
-        self.SetOpen()
+        self.SetOpen(true)
         self.PlayAnimation(sTurnOffEvent)
         self.GoToState("WaitForActivation")
     endevent
 endstate
 
 event OnLoad()
-    self.BlockActivation(true)
+    self.WaitFor3DLoad()
+    self.SetOpen(true)
+    self.BlockActivation()
 endevent

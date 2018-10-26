@@ -1,1 +1,0 @@
-scriptname Zebrina:Workshop:PowerLiftMasterScript extends Quest

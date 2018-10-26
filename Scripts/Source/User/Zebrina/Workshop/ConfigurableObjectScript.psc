@@ -1,7 +1,5 @@
 scriptname Zebrina:Workshop:ConfigurableObjectScript extends ObjectReference const conditional
 
-import Zebrina:WorkshopUtility
-
 group AutoFill
     Idle property IdlePipBoyJackIn auto const mandatory
     Idle property IdlePipBoyJackOut auto const mandatory
@@ -37,7 +35,7 @@ function StartConfiguration()
 endfunction
 
 event OnActivate(ObjectReference akActionRef)
-    if (bRunOnActivate && IsPlayerActionRef(akActionRef) && (!self.GetLinkedRef() || self.GetLinkedRef().GetOpenState() == 1))
+    if (bRunOnActivate && akActionRef == Game.GetPlayer() && (!self.GetLinkedRef() || self.GetLinkedRef().GetOpenState() == 1))
         StartConfiguration()
     endif
 endevent

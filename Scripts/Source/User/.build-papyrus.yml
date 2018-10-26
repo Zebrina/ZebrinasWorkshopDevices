@@ -4,6 +4,7 @@ release: false
 final: false
 imports:
     - C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Mod Configuration Menu\Scripts\Source\User
+    - C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Scripts\Source\_PC
     - C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Scripts\Source\User
     - C:\Games\Steam\SteamApps\common\Fallout 4\Data\Scripts\Source\User
     - C:\Games\Steam\SteamApps\common\Fallout 4\Data\Scripts\Source\Base

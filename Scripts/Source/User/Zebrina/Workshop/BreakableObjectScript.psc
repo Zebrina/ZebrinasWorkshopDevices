@@ -92,7 +92,7 @@ endevent
 event ObjectReference.OnTriggerEnter(ObjectReference akSender, ObjectReference akActionRef)
     Actor triggerActor = akActionRef as Actor
     Actor player = Game.GetPlayer()
-    if (triggerActor && (triggerActor.IsHostileToActor(player) || (triggerActor == player && GetDebugGlobalValue())))
+    if (DEBUGTriggeredByPlayer(triggerActor) || (triggerActor && (triggerActor.IsHostileToActor(player))))
         Damage(100.0)
     endif
 endevent
@@ -120,3 +120,7 @@ event OnWorkshopObjectDestroyed(ObjectReference akActionRef)
     BrokenRef = none
     self.GetLinkedRef(LinkCustom02).Delete()
 endevent
+
+bool function DEBUGTriggeredByPlayer(ObjectReference akTriggerRef) debugonly
+    return akTriggerRef == Game.GetPlayer()
+endfunction
