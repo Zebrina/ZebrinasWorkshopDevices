@@ -14,7 +14,7 @@ group Optional
     Message property DoorOpenActivateOverride = none auto const
     Message property DoorCloseActivateOverride = none auto const
     bool property bStartsOpen = false auto const
-    bool property bBlockActivation = true auto const
+    bool property bBlockActivation = false auto const
 endgroup
 
 ; ObjectReference override.
@@ -94,7 +94,7 @@ state IsOpen
 endstate
 
 event OnActivate(ObjectReference akActionRef)
-    if (!scriptBlockActivation)
+    if (!self.IsActivationBlocked())
         self.SetOpen(self.GetOpenState() != 1)
     endif
 endevent

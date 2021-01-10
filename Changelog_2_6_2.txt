@@ -1,0 +1,5 @@
+- Security gates can no longer be opened manually.
+- Fixed some inconsistencies with the 'Security' and 'Secret' concrete doors that may have caused issues.
+- 'Remote Door Switch' renamed to 'Remote Activation Switch' since it is not actually limited to doors and can also be used with bridges.
+- Updated description for crane bridge and industrial catwalk bridge to let the player know they can be controlled using the Remote Activation Switch.
+- Removed the cannery lid door since collision is not working.

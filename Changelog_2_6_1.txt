@@ -1,0 +1,4 @@
+- The quarry themed 'call lift' button now has the proper script required to function.
+- Single non-stacked ladders should now work properly.
+- Removed deprecated objects (only scrappable since v2.6.0).
+- Updated Workshop Rearranged patch with esl flag ticked.

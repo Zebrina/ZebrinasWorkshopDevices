@@ -23,7 +23,7 @@ endfunction
 
 event OnActivate(ObjectReference akActionRef)
     if (!self.IsActivationBlocked() && Zebrina:WorkshopUtility.IsPlayerActionRef(akActionRef))
-        if (!self.GetLinkedRef(WorkshopLinkLadderUp))
+        if (self.GetLinkedRef(WorkshopLinkLadderDown))
             ; I'm the top ladder.
             ClimbLadder(akActionRef as Actor, WorkshopLinkLadderDown, "LadderBottomNode")
         else
@@ -37,8 +37,8 @@ function UpdateStackedLadder(Keyword akLinkKeyword)
     if (ladderRef)
         self.BlockActivation(true, true)
         (ladderRef as LadderScript).UpdateStackedLadder(akLinkKeyword)
-    elseif (akLinkKeyword == WorkshopLinkLadderUp)
-        ; No ladder up, which means I'm the top ladder.
+    elseif (akLinkKeyword == WorkshopLinkLadderUp && self.GetLinkedRef(WorkshopLinkLadderDown))
+        ; No ladder up, which means I'm the top ladder and there is a ladder stacked below.
         self.SetActivateTextOverride(WorkshopLadderTopActivateOverride)
         self.BlockActivation(false, false)
     else
