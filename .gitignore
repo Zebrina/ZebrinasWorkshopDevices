@@ -1,6 +1,9 @@
 # Back-ups
 *.bak
 
+# Archived releases
+*.7z
+
 # SCOL
 Meshes/SCOL/
 
