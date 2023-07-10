@@ -50,12 +50,15 @@ EndEvent
 
 ; Should fix the elevator buttons bug.
 event OnLoad()
-	if (buttonsPlaced)
+	if (!self.IsDisabled() && buttonsPlaced)
 		int i = 0
 		while (i < MyButtons.Length)
 			ObjectReference buttonRef = self.GetLinkedRef(MyButtons[i].LinkKeyword)
 			if (buttonRef)
+				buttonRef.Disable(false)
+				Utility.Wait(0.1)
 				buttonRef.MoveToNode(self, MyButtons[i].Node)
+				buttonRef.Enable(false)
 			endif
 			i += 1
 		endwhile

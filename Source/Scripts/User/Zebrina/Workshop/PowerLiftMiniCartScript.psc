@@ -172,31 +172,44 @@ event ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akAct
 endevent
 
 function Initialize()
-	kPrimaryCallButton = self.PlaceAtNode(sPrimaryCallButtonAttachNode, PrimaryCallButtonBaseObject)
-	self.RegisterForRemoteEvent(kPrimaryCallButton, "OnActivate")
+	if (!kPrimaryCallButton)
+		kPrimaryCallButton = self.PlaceAtNode(sPrimaryCallButtonAttachNode, PrimaryCallButtonBaseObject)
+		self.RegisterForRemoteEvent(kPrimaryCallButton, "OnActivate")
+	endif
 
-	kMoveButton = self.PlaceAtNode(sMoveButtonAttachNode, MoveButtonBaseObject, abAttach = true)
-	self.RegisterForRemoteEvent(kMoveButton, "OnActivate")
+	if (!kMoveButton)
+		kMoveButton = self.PlaceAtNode(sMoveButtonAttachNode, MoveButtonBaseObject, abAttach = true)
+		self.RegisterForRemoteEvent(kMoveButton, "OnActivate")
+	endif
 
-	if (PlayerOnElevatorTrigger)
+	if (PlayerOnElevatorTrigger && !playerOnElevatorTriggerRef)
 		playerOnElevatorTriggerRef = self.PlaceAtNode("PlayerOnElevatorTriggerNode", PlayerOnElevatorTrigger, abAttach = true)
 	endif
 endfunction
+
+event OnCellLoad()
+	; Fix elevator bug pls?
+	if (!self.IsDisabled() && kMoveButton)
+		kMoveButton.Disable(false)
+		Utility.Wait(0.1)
+		kMoveButton.MoveToNode(self, sMoveButtonAttachNode)
+		kMoveButton.Enable(false)
+	endif
+endevent
+
 event OnWorkshopObjectPlaced(ObjectReference akWorkshopRef)
 	Initialize()
 endevent
-event OnReset()
-	self.WaitFor3DLoad()
-	Initialize()
-	DEBUGTraceSelf(self, "OnReset", "...")
-endevent
+
 event OnWorkshopObjectGrabbed(ObjectReference akWorkshopRef)
-	kPrimaryCallButton.DisableNoWait()
+	kPrimaryCallButton.DisableNoWait(false)
 endevent
+
 event OnWorkshopObjectMoved(ObjectReference akWorkshopRef)
 	kPrimaryCallButton.MoveToNode(self, sPrimaryCallButtonAttachNode)
-	kPrimaryCallButton.EnableNoWait()
+	kPrimaryCallButton.EnableNoWait(false)
 endevent
+
 event OnWorkshopObjectDestroyed(ObjectReference akWorkshopRef)
 	self.UnregisterForAllEvents()
 

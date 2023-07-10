@@ -1,11 +1,11 @@
 <?xml version='1.0'?>
-<PapyrusProject xmlns="PapyrusProject.xsd" Flags="Institute_Papyrus_Flags.flg" Output="C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Scripts\">
+<PapyrusProject xmlns="PapyrusProject.xsd" Flags="Institute_Papyrus_Flags.flg" Output="D:\Games\Tools\ModOrganizer2\Games\Fallout 4\mods\Zebrina's Workshop Devices\Scripts\">
     <Imports>
-        <Import>C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Mod Configuration Menu\Scripts\Source\User</Import>
-        <Import>C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Source\Scripts\_PC</Import>
-        <Import>C:\Users\sabri\AppData\Local\ModOrganizer\Fallout 4\mods\Zebrina's Workshop Devices\Source\Scripts\User</Import>
-        <Import>C:\Games\Steam\SteamApps\common\Fallout 4\Data\Scripts\Source\User</Import>
-        <Import>C:\Games\Steam\SteamApps\common\Fallout 4\Data\Scripts\Source\Base</Import>
+        <Import>D:\Games\Tools\ModOrganizer2\Games\Fallout 4\mods\Mod Configuration Menu\Scripts\Source\User</Import>
+        <Import>D:\Games\Tools\ModOrganizer2\Games\Fallout 4\mods\Zebrina's Workshop Devices\Source\Scripts\_PC</Import>
+        <Import>D:\Games\Tools\ModOrganizer2\Games\Fallout 4\mods\Zebrina's Workshop Devices\Source\Scripts\User</Import>
+        <Import>D:\Games\Steam\SteamApps\common\Fallout 4\Data\Source\Scripts\F4SE</Import>
+        <Import>D:\Games\Steam\SteamApps\common\Fallout 4\Data\Source\Scripts\Base</Import>
     </Imports>
     <Folders>
         <Folder>.</Folder>
